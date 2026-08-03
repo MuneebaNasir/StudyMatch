@@ -1,0 +1,77 @@
+{
+  "courses": [
+    {
+      "id": 4722,
+      "image": null,
+      "copyright": null,
+      "courseName": "Actuarial and Financial Mathematics",
+      "courseNameShort": "Actuarial and Financial Mathematics",
+      "academy": "RPTU University Kaiserslautern-Landau",
+      "city": "Kaiserslautern",
+      "languages": [
+        "English"
+      ],
+      "languageLevelGerman": null,
+      "languageLevelEnglish": null,
+      "beginning": "Winter semester, Summer semester",
+      "programmeDuration": "4 semesters",
+      "date": [],
+      "typeCourseDate": "",
+      "costString": null,
+      "tuitionFees": "No tuition fees",
+      "courseType": 2,
+      "isElearning": false,
+      "preparationForDegree": null,
+      "preparationForSubjectGroups": null,
+      "applicationDeadline": "Register by 31 October 2026 + 1 more",
+      "isCompleteOnlinePossible": false,
+      "badgeLabel": "",
+      "financialSupport": null,
+      "structuredResearch": null,
+      "supportInternationalStudents": [
+        "Welcome event | Buddy programme | Accompanying programme | Specialist counselling | Cultural and linguistic preparation | Visa matters | Pick-up service | Help with finding accommodation | Support with registration procedures"
+      ],
+      "subject": "Applied Mathematics",
+      "typeOfElearning": [],
+      "link": "/deutschland/studienangebote/international-programmes/en/detail/4722/",
+      "requestLanguage": "en"
+    },
+    {
+      "id": 10396,
+      "image": null,
+      "copyright": null,
+      "courseName": "Additive Manufacturing",
+      "courseNameShort": "Additive Manufacturing",
+      "academy": "Paderborn University",
+      "city": "Paderborn",
+      "languages": [
+        "English"
+      ],
+      "languageLevelGerman": null,
+      "languageLevelEnglish": null,
+      "beginning": "Winter semester, Summer semester",
+      "programmeDuration": "4 semesters",
+      "date": [],
+      "typeCourseDate": "",
+      "costString": null,
+      "tuitionFees": "No tuition fees",
+      "courseType": 2,
+      "isElearning": false,
+      "preparationForDegree": null,
+      "preparationForSubjectGroups": null,
+      "applicationDeadline": "This programme has no deadline.",
+      "isCompleteOnlinePossible": false,
+      "badgeLabel": "",
+      "financialSupport": null,
+      "structuredResearch": null,
+      "supportInternationalStudents": [
+        "Buddy programme | Tutors | Specialist counselling | Support with registration procedures"
+      ],
+      "subject": "Mechanical Engineering",
+      "typeOfElearning": [],
+      "link": "/deutschland/studienangebote/international-programmes/en/detail/10396/",
+      "requestLanguage": "en"
+    }
+  ],
+  "numResults": 1718
+}
