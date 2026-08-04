@@ -38,38 +38,38 @@ async def fetch_all_summaries(client: DaadClient) -> list[ProgramSummary]:
 async def ingest_program(client: DaadClient, summary: ProgramSummary) -> tuple[int, bool]:
     try:
         html = await client.fetch_detail_html(summary.id)
+
+        sections = parse_detail_sections(html)
+        missing = [k for k in ("description", "admission_requirements") if k not in sections]
+        if missing:
+            logger.warning("Program %s missing sections: %s", summary.id, missing)
+
+        values = dict(
+            course_name=summary.course_name,
+            course_name_short=summary.course_name_short,
+            university=summary.university,
+            city=summary.city,
+            languages=summary.languages,
+            subject=summary.subject,
+            course_type=summary.course_type,
+            degree=sections.get("degree"),
+            duration=summary.duration,
+            beginning=summary.beginning,
+            tuition_fees_text=summary.tuition_fees_text,
+            has_tuition_fees=summary.has_tuition_fees,
+            application_deadline_text=sections.get("application_deadline"),
+            link=summary.link,
+            raw_sections=sections,
+            scraped_at=datetime.now(timezone.utc),
+        )
+
+        async with async_session_factory() as session:
+            await upsert_program(session, summary.id, values)
+
+        return summary.id, True
     except Exception:
-        logger.exception("Failed to fetch detail page for program %s", summary.id)
+        logger.exception("Failed to ingest program %s", summary.id)
         return summary.id, False
-
-    sections = parse_detail_sections(html)
-    missing = [k for k in ("description", "admission_requirements") if k not in sections]
-    if missing:
-        logger.warning("Program %s missing sections: %s", summary.id, missing)
-
-    values = dict(
-        course_name=summary.course_name,
-        course_name_short=summary.course_name_short,
-        university=summary.university,
-        city=summary.city,
-        languages=summary.languages,
-        subject=summary.subject,
-        course_type=summary.course_type,
-        degree=sections.get("degree"),
-        duration=summary.duration,
-        beginning=summary.beginning,
-        tuition_fees_text=summary.tuition_fees_text,
-        has_tuition_fees=summary.has_tuition_fees,
-        application_deadline_text=sections.get("application_deadline"),
-        link=summary.link,
-        raw_sections=sections,
-        scraped_at=datetime.now(timezone.utc),
-    )
-
-    async with async_session_factory() as session:
-        await upsert_program(session, summary.id, values)
-
-    return summary.id, True
 
 
 async def run_ingestion(limit_ids: list[int] | None = None) -> dict:
@@ -99,7 +99,22 @@ async def run_ingestion(limit_ids: list[int] | None = None) -> dict:
             build_embedding_text(row.course_name, row.subject, row.raw_sections.get("description"))
             for row in rows
         ]
-        vectors = embed_texts(texts) if texts else []
+        vectors: list[list[float]] = []
+        if texts:
+            try:
+                vectors = embed_texts(texts)
+            except Exception as exc:
+                logger.warning(
+                    "Embedding failed for %d programs; skipping embeddings for this run: %s",
+                    len(texts), exc,
+                )
+                vectors = []
+
+        if vectors and len(vectors) != len(rows):
+            logger.warning(
+                "Embedding count mismatch: expected %d vectors, got %d; only upserting matched rows",
+                len(rows), len(vectors),
+            )
 
         for row, vector in zip(rows, vectors):
             payload = {
