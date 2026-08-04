@@ -1,3 +1,5 @@
+import logging
+
 import pytest
 from sqlalchemy import select
 
@@ -50,19 +52,24 @@ async def test_run_ingestion_populates_postgres_and_qdrant(pipeline_env):
 async def test_reconcile_deleted_removes_programs_missing_upstream(pipeline_env, make_program):
     session_factory, qdrant = pipeline_env
 
+    # 10 stored programs with only 1 delisted keeps the live/stored ratio (90%)
+    # at the safety floor, so this still exercises a normal small-scale
+    # reconciliation rather than tripping the truncated-response guard.
     async with session_factory() as session:
         session.add_all([
-            make_program(id=1, course_name="Still Listed", link="https://example.com/1"),
-            make_program(id=2, course_name="Delisted", link="https://example.com/2"),
+            make_program(id=i, course_name=f"Program {i}", link=f"https://example.com/{i}")
+            for i in range(1, 10)
+        ] + [
+            make_program(id=10, course_name="Delisted", link="https://example.com/10"),
         ])
         await session.commit()
 
-    removed = await reconcile_deleted({1}, qdrant)
+    removed = await reconcile_deleted(set(range(1, 10)), qdrant)
 
-    assert removed == [2]
+    assert removed == [10]
     async with session_factory() as session:
         ids = set((await session.execute(select(Program.id))).scalars().all())
-        assert ids == {1}
+        assert ids == set(range(1, 10))
 
 
 async def test_reconcile_deleted_skips_empty_live_catalog(pipeline_env, make_program):
@@ -78,3 +85,30 @@ async def test_reconcile_deleted_skips_empty_live_catalog(pipeline_env, make_pro
     async with session_factory() as session:
         ids = set((await session.execute(select(Program.id))).scalars().all())
         assert ids == {1}
+
+
+async def test_reconcile_deleted_skips_when_live_catalog_suspiciously_small(
+    pipeline_env, make_program, caplog
+):
+    """A truncated-but-200-OK DAAD response must never mass-delete real rows."""
+    session_factory, qdrant = pipeline_env
+
+    async with session_factory() as session:
+        session.add_all([
+            make_program(id=i, course_name=f"Program {i}", link=f"https://example.com/{i}")
+            for i in range(1, 11)
+        ])
+        await session.commit()
+
+    # Live catalog only reports 2 of the 10 stored programs — well under the
+    # 90% floor — which should look like a truncated response, not real
+    # delistings.
+    with caplog.at_level(logging.ERROR):
+        removed = await reconcile_deleted({1, 2}, qdrant)
+
+    assert removed == []
+    assert any("Refusing to reconcile" in record.message for record in caplog.records)
+
+    async with session_factory() as session:
+        ids = set((await session.execute(select(Program.id))).scalars().all())
+        assert ids == set(range(1, 11))

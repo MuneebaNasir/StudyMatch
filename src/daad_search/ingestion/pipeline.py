@@ -2,7 +2,7 @@ import asyncio
 import logging
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 
 from ..config import settings
 from ..db.models import Program
@@ -28,6 +28,11 @@ PAGE_SIZE = 100
 # Tolerated drift between count.json's reported total and what pagination
 # actually collected before we log a warning.
 COUNT_MISMATCH_TOLERANCE = 0.02
+# If the freshly-fetched live catalog is smaller than this fraction of what's
+# already stored in Postgres, refuse to reconcile deletions — a genuine DAAD
+# delisting wave is gradual, so a sharp drop is a strong signal of a
+# truncated-but-200-OK response rather than real attrition.
+RECONCILE_MIN_LIVE_RATIO = 0.9
 
 
 async def fetch_all_summaries(client: DaadClient) -> list[ProgramSummary]:
@@ -152,6 +157,20 @@ async def reconcile_deleted(live_ids: set[int], qdrant) -> list[int]:
         return []
 
     async with async_session_factory() as session:
+        stored_count = (
+            await session.execute(select(func.count()).select_from(Program))
+        ).scalar_one()
+        if stored_count and len(live_ids) < RECONCILE_MIN_LIVE_RATIO * stored_count:
+            logger.error(
+                "Refusing to reconcile: live catalog has only %d programs vs %d "
+                "stored in Postgres (%.1f%% of stored, below the %.0f%% floor). "
+                "This looks like a truncated DAAD response, not real delistings — "
+                "skipping deletion entirely this run.",
+                len(live_ids), stored_count,
+                100 * len(live_ids) / stored_count, 100 * RECONCILE_MIN_LIVE_RATIO,
+            )
+            return []
+
         stored_ids = set((await session.execute(select(Program.id))).scalars().all())
         stale_ids = sorted(stored_ids - live_ids)
         if not stale_ids:
