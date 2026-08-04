@@ -1,8 +1,5 @@
-from __future__ import annotations
-
 import asyncio
 import json
-from typing import Optional
 
 import httpx
 
@@ -11,7 +8,7 @@ from .cache import ResponseCache
 
 
 class DaadClient:
-    def __init__(self, cache: Optional[ResponseCache] = None) -> None:
+    def __init__(self, cache: ResponseCache | None = None) -> None:
         self._client = httpx.AsyncClient(
             headers={"User-Agent": settings.http_user_agent}, timeout=30.0
         )

@@ -1,7 +1,4 @@
-from __future__ import annotations
-
 from dataclasses import dataclass
-from typing import Optional
 
 DAAD_HOST = "https://www2.daad.de"
 
@@ -10,20 +7,20 @@ DAAD_HOST = "https://www2.daad.de"
 class ProgramSummary:
     id: int
     course_name: str
-    course_name_short: Optional[str]
+    course_name_short: str | None
     university: str
-    city: Optional[str]
+    city: str | None
     languages: list[str]
-    subject: Optional[str]
+    subject: str | None
     course_type: int
-    duration: Optional[str]
-    beginning: Optional[str]
-    tuition_fees_text: Optional[str]
+    duration: str | None
+    beginning: str | None
+    tuition_fees_text: str | None
     has_tuition_fees: bool
     link: str
 
 
-def _has_fees(tuition_text: Optional[str]) -> bool:
+def _has_fees(tuition_text: str | None) -> bool:
     if not tuition_text:
         return True
     return "no tuition fees" not in tuition_text.lower()

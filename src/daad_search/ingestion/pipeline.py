@@ -1,8 +1,5 @@
-from __future__ import annotations
-
 import logging
 from datetime import datetime, timezone
-from typing import Optional
 
 from ..config import settings
 from ..db.models import Program
@@ -75,7 +72,7 @@ async def ingest_program(client: DaadClient, summary: ProgramSummary) -> tuple[i
         return summary.id, False
 
 
-async def run_ingestion(limit_ids: Optional[list[int]] = None) -> dict:
+async def run_ingestion(limit_ids: list[int] | None = None) -> dict:
     cache = ResponseCache(settings.cache_dir)
     client = DaadClient(cache=cache)
     try:

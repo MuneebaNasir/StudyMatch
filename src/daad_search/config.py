@@ -1,7 +1,3 @@
-from __future__ import annotations
-
-from typing import Optional
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -10,7 +6,7 @@ class Settings(BaseSettings):
 
     database_url: str = "postgresql+asyncpg://daad:daad@localhost:5432/daad"
     qdrant_url: str = "http://localhost:6333"
-    qdrant_api_key: Optional[str] = None
+    qdrant_api_key: str | None = None
     voyage_api_key: str = ""
     daad_base_url: str = "https://www2.daad.de/deutschland/studienangebote/international-programmes"
     http_user_agent: str = "daad-search-portfolio-project/0.1 (contact: you@example.com)"
