@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import Boolean, DateTime, Index, Integer, Text
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
@@ -14,18 +17,18 @@ class Program(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=False)
     course_name: Mapped[str] = mapped_column(Text)
-    course_name_short: Mapped[str | None] = mapped_column(Text, nullable=True)
+    course_name_short: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     university: Mapped[str] = mapped_column(Text)
-    city: Mapped[str | None] = mapped_column(Text, nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     languages: Mapped[list[str]] = mapped_column(ARRAY(Text))
-    subject: Mapped[str | None] = mapped_column(Text, nullable=True)
+    subject: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     course_type: Mapped[int] = mapped_column(Integer)
-    degree: Mapped[str | None] = mapped_column(Text, nullable=True)
-    duration: Mapped[str | None] = mapped_column(Text, nullable=True)
-    beginning: Mapped[str | None] = mapped_column(Text, nullable=True)
-    tuition_fees_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    degree: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    duration: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    beginning: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    tuition_fees_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     has_tuition_fees: Mapped[bool] = mapped_column(Boolean, default=True)
-    application_deadline_text: Mapped[str | None] = mapped_column(Text, nullable=True)
+    application_deadline_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     link: Mapped[str] = mapped_column(Text)
     raw_sections: Mapped[dict] = mapped_column(JSONB, default=dict)
     scraped_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

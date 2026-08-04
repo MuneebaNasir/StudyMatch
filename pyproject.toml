@@ -2,7 +2,7 @@
 name = "daad-search"
 version = "0.1.0"
 description = "Data foundation and hybrid retrieval pipeline for German study programs sourced from DAAD"
-requires-python = ">=3.11"
+requires-python = ">=3.9"
 dependencies = [
     "httpx>=0.27",
     "beautifulsoup4>=4.12",

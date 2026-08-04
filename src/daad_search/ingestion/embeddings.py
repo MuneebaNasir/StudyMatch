@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Optional
+
 import voyageai
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, PointStruct, VectorParams
@@ -9,7 +13,7 @@ EMBEDDING_DIM = 1024
 EMBEDDING_MODEL = "voyage-3"
 
 
-def build_embedding_text(course_name: str, subject: str | None, description: str | None) -> str:
+def build_embedding_text(course_name: str, subject: Optional[str], description: Optional[str]) -> str:
     parts = [course_name]
     if subject:
         parts.append(subject)

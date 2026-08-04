@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 import hashlib
 from pathlib import Path
+from typing import Optional
 
 
 class ResponseCache:
@@ -11,7 +14,7 @@ class ResponseCache:
         digest = hashlib.sha256(key.encode("utf-8")).hexdigest()
         return self.cache_dir / f"{digest}.txt"
 
-    def get(self, key: str) -> str | None:
+    def get(self, key: str) -> Optional[str]:
         path = self._path_for(key)
         if path.exists():
             return path.read_text(encoding="utf-8")
