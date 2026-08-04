@@ -100,7 +100,7 @@ async def semantic_rank(
     Both the Voyage and Qdrant SDKs are synchronous, so their calls run in a
     worker thread to keep the event loop free.
     """
-    query_vector = (await asyncio.to_thread(embed_texts, [query]))[0]
+    query_vector = (await asyncio.to_thread(embed_texts, [query], "query"))[0]
     return await asyncio.to_thread(_query_qdrant, query_vector, candidate_ids, limit, offset)
 
 

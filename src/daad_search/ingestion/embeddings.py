@@ -1,6 +1,8 @@
+import collections
 import logging
+import threading
 import time
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, Literal, TypeVar
 
 import voyageai
 from qdrant_client import QdrantClient
@@ -15,18 +17,60 @@ EMBEDDING_DIM = 1024
 EMBEDDING_MODEL = "voyage-3"
 
 # Voyage caps the number of texts (and total tokens) per request; 100 texts per
-# call stays comfortably inside those limits for program-sized documents.
+# call stays comfortably inside those limits for program-sized documents *when
+# a paid-tier key is in use*. A cardless free-tier key is additionally capped
+# at 10K tokens/minute — a single 100-text batch can exceed that on its own,
+# no amount of request pacing fixes that. See EMBEDDING_PROVIDER=local below.
 EMBED_BATCH_SIZE = 100
 # voyageai.Client retries transient failures internally when max_retries > 0.
 VOYAGE_MAX_RETRIES = 3
+# Free-tier Voyage keys are capped at 3 requests/minute. embed_texts() throttles
+# to this before every call so a full ingestion run backs off instead of
+# burning its retry budget on 429s.
+VOYAGE_REQUESTS_PER_MINUTE = 3
+# BGE's retrieval instruction prefix: recommended on queries only, not on the
+# documents/passages being searched. Doubles measured retrieval quality on
+# BGE's own benchmarks; costs nothing to apply.
+LOCAL_QUERY_INSTRUCTION = "Represent this sentence for searching relevant passages: "
 # Qdrant's client has no built-in retry knob, so calls go through with_retry.
 QDRANT_ATTEMPTS = 3
 QDRANT_BACKOFF_SECONDS = 0.5
 
 T = TypeVar("T")
+InputType = Literal["document", "query"]
 
 _voyage_client: voyageai.Client | None = None
 _qdrant_client: QdrantClient | None = None
+_local_model: Any = None
+
+_voyage_call_times: collections.deque[float] = collections.deque()
+_voyage_rate_lock = threading.Lock()
+
+
+def _throttle_to_voyage_rate_limit() -> None:
+    """Block until fewer than VOYAGE_REQUESTS_PER_MINUTE calls happened in the last 60s.
+
+    Sends up to VOYAGE_REQUESTS_PER_MINUTE requests back-to-back, then waits for
+    the oldest of them to fall outside the 60s window before letting the next
+    one through — i.e. "3 requests, wait a minute, 3 more" rather than an even
+    20s spacing between every call.
+    """
+    with _voyage_rate_lock:
+        while True:
+            now = time.monotonic()
+            while _voyage_call_times and now - _voyage_call_times[0] >= 60:
+                _voyage_call_times.popleft()
+
+            if len(_voyage_call_times) < VOYAGE_REQUESTS_PER_MINUTE:
+                _voyage_call_times.append(now)
+                return
+
+            wait = 60 - (now - _voyage_call_times[0])
+            logger.info(
+                "Voyage rate limit (%d req/min) reached; waiting %.1fs",
+                VOYAGE_REQUESTS_PER_MINUTE, wait,
+            )
+            time.sleep(wait)
 
 
 def build_embedding_text(course_name: str, subject: str | None, description: str | None) -> str:
@@ -48,11 +92,58 @@ def get_voyage_client() -> voyageai.Client:
     return _voyage_client
 
 
-def embed_texts(texts: list[str], client: voyageai.Client | None = None) -> list[list[float]]:
-    """Embed one batch of texts. Callers must chunk to EMBED_BATCH_SIZE."""
+def get_local_model() -> Any:
+    """Process-wide local embedding model — loaded lazily so `import
+    sentence_transformers` (pulls in torch) never happens on the Voyage path."""
+    global _local_model
+    if _local_model is None:
+        from sentence_transformers import SentenceTransformer
+
+        try:
+            # Already cached from a prior run: load fully offline, no Hub
+            # round-trips to check for updates on every process start.
+            _local_model = SentenceTransformer(
+                settings.local_embedding_model, local_files_only=True
+            )
+        except Exception:
+            logger.info(
+                "Local embedding model %s not cached yet; downloading",
+                settings.local_embedding_model,
+            )
+            _local_model = SentenceTransformer(settings.local_embedding_model)
+    return _local_model
+
+
+def _embed_texts_voyage(
+    texts: list[str], input_type: InputType, client: voyageai.Client | None = None
+) -> list[list[float]]:
     client = client or get_voyage_client()
-    result = client.embed(texts, model=EMBEDDING_MODEL, input_type="document")
+    _throttle_to_voyage_rate_limit()
+    result = client.embed(texts, model=EMBEDDING_MODEL, input_type=input_type)
     return result.embeddings
+
+
+def _embed_texts_local(texts: list[str], input_type: InputType) -> list[list[float]]:
+    model = get_local_model()
+    if input_type == "query":
+        texts = [LOCAL_QUERY_INSTRUCTION + text for text in texts]
+    vectors = model.encode(texts, normalize_embeddings=True)
+    return vectors.tolist()
+
+
+def embed_texts(
+    texts: list[str], input_type: InputType = "document", client: voyageai.Client | None = None
+) -> list[list[float]]:
+    """Embed one batch of texts. Callers must chunk to EMBED_BATCH_SIZE.
+
+    Dispatches on `settings.embedding_provider` ("voyage" or "local"). `client`
+    is only used on the Voyage path (test seam); ignored for "local".
+    Vectors from the two providers are NOT interchangeable — don't mix them in
+    the same Qdrant collection (re-embed everything after switching providers).
+    """
+    if settings.embedding_provider == "local":
+        return _embed_texts_local(texts, input_type)
+    return _embed_texts_voyage(texts, input_type, client)
 
 
 def get_qdrant_client() -> QdrantClient:

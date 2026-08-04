@@ -15,6 +15,14 @@ class Settings(BaseSettings):
     collection_name: str = "programs"
     test_collection_name: str = "programs_test"
     voyage_api_key: str = ""
+    # "voyage" (default, needs VOYAGE_API_KEY) or "local" (sentence-transformers,
+    # runs on-device — no API key, no rate limit, no cost). Both produce
+    # EMBEDDING_DIM-sized vectors so the Qdrant collection schema is unaffected,
+    # but vectors from different providers are NOT comparable to each other —
+    # switching providers on an existing collection requires re-embedding
+    # everything (see embeddings.py).
+    embedding_provider: str = "voyage"
+    local_embedding_model: str = "BAAI/bge-large-en-v1.5"
     daad_base_url: str = "https://www2.daad.de/deutschland/studienangebote/international-programmes"
     http_user_agent: str = "daad-search-portfolio-project/0.1 (contact: you@example.com)"
     request_delay_seconds: float = 0.3

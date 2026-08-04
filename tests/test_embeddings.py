@@ -1,3 +1,5 @@
+import collections
+
 import pytest
 
 from daad_search.ingestion import embeddings as embeddings_module
@@ -14,6 +16,126 @@ def test_build_embedding_text_omits_missing_optional_fields():
     assert build_embedding_text("Data Science MSc", "Computer Science", None) == (
         "Data Science MSc. Computer Science"
     )
+
+
+def test_throttle_allows_burst_then_waits_for_the_window(monkeypatch):
+    monkeypatch.setattr(embeddings_module, "_voyage_call_times", collections.deque())
+
+    fake_now = [1000.0]
+    sleeps = []
+
+    def fake_monotonic():
+        return fake_now[0]
+
+    def fake_sleep(seconds):
+        sleeps.append(seconds)
+        fake_now[0] += seconds
+
+    monkeypatch.setattr(embeddings_module.time, "monotonic", fake_monotonic)
+    monkeypatch.setattr(embeddings_module.time, "sleep", fake_sleep)
+
+    # First 3 calls (the per-minute budget) go through with no waiting.
+    for _ in range(embeddings_module.VOYAGE_REQUESTS_PER_MINUTE):
+        embeddings_module._throttle_to_voyage_rate_limit()
+    assert sleeps == []
+
+    # The 4th call must wait for the 1st call to fall outside the 60s window.
+    embeddings_module._throttle_to_voyage_rate_limit()
+    assert sleeps == [60.0]
+    assert fake_now[0] == 1060.0
+
+
+def test_embed_texts_throttles_before_calling_the_client(monkeypatch):
+    monkeypatch.setattr(embeddings_module.settings, "embedding_provider", "voyage")
+    calls = []
+    monkeypatch.setattr(
+        embeddings_module, "_throttle_to_voyage_rate_limit", lambda: calls.append("throttle")
+    )
+
+    class FakeResult:
+        embeddings = [[0.1, 0.2]]
+
+    class FakeClient:
+        def embed(self, texts, model, input_type):
+            calls.append("embed")
+            return FakeResult()
+
+    result = embeddings_module.embed_texts(["hello"], client=FakeClient())
+    assert calls == ["throttle", "embed"]
+    assert result == [[0.1, 0.2]]
+
+
+def test_embed_texts_dispatches_to_local_provider(monkeypatch):
+    monkeypatch.setattr(embeddings_module.settings, "embedding_provider", "local")
+    monkeypatch.setattr(
+        embeddings_module, "_embed_texts_local", lambda texts, input_type: [[9.0] * 3]
+    )
+    voyage_calls = []
+    monkeypatch.setattr(
+        embeddings_module, "_embed_texts_voyage",
+        lambda *a, **kw: voyage_calls.append((a, kw)) or [[0.0]],
+    )
+
+    assert embeddings_module.embed_texts(["x"]) == [[9.0] * 3]
+    assert voyage_calls == []
+
+
+def test_embed_texts_dispatches_to_voyage_when_configured(monkeypatch):
+    monkeypatch.setattr(embeddings_module.settings, "embedding_provider", "voyage")
+    local_calls = []
+    monkeypatch.setattr(
+        embeddings_module, "_embed_texts_local",
+        lambda *a, **kw: local_calls.append((a, kw)) or [[0.0]],
+    )
+    monkeypatch.setattr(
+        embeddings_module, "_embed_texts_voyage", lambda texts, input_type, client=None: [[1.0]]
+    )
+
+    assert embeddings_module.embed_texts(["x"]) == [[1.0]]
+    assert local_calls == []
+
+
+def test_local_provider_applies_query_instruction_only_to_queries(monkeypatch):
+    class FakeVector:
+        def tolist(self):
+            return [[1.0, 2.0]]
+
+    class FakeModel:
+        def __init__(self):
+            self.seen_texts = None
+
+        def encode(self, texts, normalize_embeddings):
+            self.seen_texts = texts
+            assert normalize_embeddings is True
+            return FakeVector()
+
+    fake_model = FakeModel()
+    monkeypatch.setattr(embeddings_module, "_local_model", fake_model)
+
+    embeddings_module._embed_texts_local(["machine learning"], "document")
+    assert fake_model.seen_texts == ["machine learning"]
+
+    embeddings_module._embed_texts_local(["machine learning"], "query")
+    assert fake_model.seen_texts == [
+        embeddings_module.LOCAL_QUERY_INSTRUCTION + "machine learning"
+    ]
+
+
+def test_get_local_model_returns_a_singleton(monkeypatch):
+    monkeypatch.setattr(embeddings_module, "_local_model", None)
+
+    class FakeSentenceTransformer:
+        def __init__(self, name, local_files_only=False):
+            self.name = name
+            self.local_files_only = local_files_only
+
+    monkeypatch.setattr(
+        "sentence_transformers.SentenceTransformer", FakeSentenceTransformer
+    )
+
+    first = embeddings_module.get_local_model()
+    assert isinstance(first, FakeSentenceTransformer)
+    assert embeddings_module.get_local_model() is first
 
 
 def test_get_qdrant_client_returns_a_singleton(monkeypatch):
