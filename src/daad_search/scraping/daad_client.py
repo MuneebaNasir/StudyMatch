@@ -42,3 +42,7 @@ class DaadClient:
         url = f"{settings.daad_base_url}/api/solr/en/count.json"
         payload = json.loads(await self._get(url))
         return payload["numResults"]
+
+    async def fetch_detail_html(self, program_id: int) -> str:
+        url = f"{settings.daad_base_url}/en/detail/{program_id}/"
+        return await self._get(url)
