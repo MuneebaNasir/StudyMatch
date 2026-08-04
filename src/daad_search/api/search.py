@@ -1,7 +1,9 @@
+from qdrant_client.models import Filter, HasIdCondition
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models import Program
+from ..ingestion.embeddings import COLLECTION_NAME, embed_texts, get_qdrant_client
 from .schemas import SearchFilters, SearchResult
 
 
@@ -52,3 +54,40 @@ async def filtered_search(
     )
 
     return [to_search_result(row) for row in rows], total
+
+
+async def semantic_rank(
+    candidate_ids: list[int], query: str, limit: int
+) -> list[tuple[int, float]]:
+    query_vector = embed_texts([query])[0]
+    qdrant = get_qdrant_client()
+
+    hits = qdrant.query_points(
+        collection_name=COLLECTION_NAME,
+        query=query_vector,
+        query_filter=Filter(must=[HasIdCondition(has_id=candidate_ids)]),
+        limit=limit,
+    ).points
+
+    return [(hit.id, hit.score) for hit in hits]
+
+
+async def hybrid_search(
+    session: AsyncSession,
+    filters: SearchFilters | None,
+    semantic_query: str,
+    limit: int,
+) -> tuple[list[SearchResult], int]:
+    base = apply_filters(select(Program), filters)
+    candidate_rows = (await session.execute(base)).scalars().all()
+    candidates_by_id = {row.id: row for row in candidate_rows}
+
+    if not candidates_by_id:
+        return [], 0
+
+    ranked = await semantic_rank(list(candidates_by_id.keys()), semantic_query, limit)
+    results = [
+        to_search_result(candidates_by_id[program_id], score=score)
+        for program_id, score in ranked
+    ]
+    return results, len(candidates_by_id)

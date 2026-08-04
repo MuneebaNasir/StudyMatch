@@ -4,7 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..db.models import Program
 from ..db.session import async_session_factory
 from .schemas import ProgramDetail, SearchRequest, SearchResponse
-from .search import filtered_search, to_search_result
+from .search import filtered_search, hybrid_search, to_search_result
 
 app = FastAPI(title="DAAD Search API")
 
@@ -18,7 +18,12 @@ async def get_session() -> AsyncSession:
 async def search(
     request: SearchRequest, session: AsyncSession = Depends(get_session)
 ) -> SearchResponse:
-    results, total = await filtered_search(session, request.filters, request.limit)
+    if request.semantic_query:
+        results, total = await hybrid_search(
+            session, request.filters, request.semantic_query, request.limit
+        )
+    else:
+        results, total = await filtered_search(session, request.filters, request.limit)
     return SearchResponse(results=results, total_matched=total)
 
 
