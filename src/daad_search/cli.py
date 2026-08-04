@@ -18,14 +18,31 @@ def main() -> None:
         "--ids", type=int, nargs="*", default=None,
         help="Only ingest these DAAD program IDs (for testing)",
     )
+    ingest_parser.add_argument(
+        "--refresh", action="store_true",
+        help="Ignore cached DAAD responses and re-fetch everything for this run",
+    )
 
     args = parser.parse_args()
 
     if args.command == "init-db":
         asyncio.run(init_db())
     elif args.command == "ingest":
-        result = asyncio.run(run_ingestion(limit_ids=args.ids))
-        print(f"Ingested {result['succeeded']}/{result['total']} programs. Failed IDs: {result['failed_ids']}")
+        result = asyncio.run(run_ingestion(limit_ids=args.ids, refresh=args.refresh))
+        print(
+            f"Ingested {result['succeeded']}/{result['total']} programs. "
+            f"Failed IDs: {result['failed_ids']}"
+        )
+        print(
+            f"Embedded {result['embedded']}/{result['succeeded']} programs. "
+            f"Embedding failures: {len(result['embedding_failed_ids'])} "
+            f"{result['embedding_failed_ids']}"
+        )
+        if result["reconciled_ids"]:
+            print(
+                f"Reconciled away {len(result['reconciled_ids'])} programs "
+                f"no longer listed by DAAD: {result['reconciled_ids']}"
+            )
 
 
 if __name__ == "__main__":
