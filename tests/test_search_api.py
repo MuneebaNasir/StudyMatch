@@ -49,6 +49,27 @@ def test_search_paginates_with_offset(api_client):
     assert beyond["total_matched"] == 2
 
 
+SAME_NAME_PROGRAMS = [
+    dict(id=1, course_name="Data Science MSc", university="TU Berlin", link="https://example.com/1"),
+    dict(id=2, course_name="Data Science MSc", university="TU Munich", link="https://example.com/2"),
+]
+
+
+@pytest.mark.seed_programs(SAME_NAME_PROGRAMS)
+def test_search_paginates_deterministically_with_duplicate_course_names(api_client):
+    """Program.id must be a secondary sort key so equal course_names don't produce
+    unstable pagination (duplicate or skipped rows across pages)."""
+    first = api_client.post("/search", json={"limit": 1, "offset": 0}).json()
+    second = api_client.post("/search", json={"limit": 1, "offset": 1}).json()
+
+    assert first["total_matched"] == second["total_matched"] == 2
+    assert len(first["results"]) == len(second["results"]) == 1
+    first_ids = {r["id"] for r in first["results"]}
+    second_ids = {r["id"] for r in second["results"]}
+    assert first_ids.isdisjoint(second_ids)
+    assert first_ids | second_ids == {1, 2}
+
+
 @pytest.mark.seed_programs(TWO_PROGRAMS)
 @pytest.mark.parametrize(
     "payload",

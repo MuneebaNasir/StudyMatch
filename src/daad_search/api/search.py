@@ -63,7 +63,7 @@ async def filtered_search(
     rows = (
         (
             await session.execute(
-                base.order_by(Program.course_name).offset(offset).limit(limit)
+                base.order_by(Program.course_name, Program.id).offset(offset).limit(limit)
             )
         )
         .scalars()
