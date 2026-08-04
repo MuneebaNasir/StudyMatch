@@ -1,6 +1,3 @@
-from __future__ import annotations
-
-from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -8,7 +5,7 @@ from ..db.models import Program
 from .schemas import SearchFilters, SearchResult
 
 
-def apply_filters(stmt, filters: Optional[SearchFilters]):
+def apply_filters(stmt, filters: SearchFilters | None):
     if filters is None:
         return stmt
     if filters.languages:
@@ -24,7 +21,7 @@ def apply_filters(stmt, filters: Optional[SearchFilters]):
     return stmt
 
 
-def to_search_result(row: Program, score: Optional[float] = None) -> SearchResult:
+def to_search_result(row: Program, score: float | None = None) -> SearchResult:
     return SearchResult(
         id=row.id,
         course_name=row.course_name,
@@ -40,7 +37,7 @@ def to_search_result(row: Program, score: Optional[float] = None) -> SearchResul
 
 
 async def filtered_search(
-    session: AsyncSession, filters: Optional[SearchFilters], limit: int
+    session: AsyncSession, filters: SearchFilters | None, limit: int
 ) -> tuple[list[SearchResult], int]:
     base = apply_filters(select(Program), filters)
 

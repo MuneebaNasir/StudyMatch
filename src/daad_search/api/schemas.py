@@ -1,20 +1,17 @@
-from __future__ import annotations
-
-from typing import Optional
 from pydantic import BaseModel
 
 
 class SearchFilters(BaseModel):
-    languages: Optional[list[str]] = None
-    max_tuition_free_only: Optional[bool] = None
-    subject: Optional[str] = None
-    city: Optional[str] = None
-    course_type: Optional[int] = None
+    languages: list[str] | None = None
+    max_tuition_free_only: bool | None = None
+    subject: str | None = None
+    city: str | None = None
+    course_type: int | None = None
 
 
 class SearchRequest(BaseModel):
-    filters: Optional[SearchFilters] = None
-    semantic_query: Optional[str] = None
+    filters: SearchFilters | None = None
+    semantic_query: str | None = None
     limit: int = 20
 
 
@@ -22,13 +19,13 @@ class SearchResult(BaseModel):
     id: int
     course_name: str
     university: str
-    city: Optional[str]
+    city: str | None
     languages: list[str]
-    subject: Optional[str]
-    tuition_fees_text: Optional[str]
-    application_deadline_text: Optional[str]
+    subject: str | None
+    tuition_fees_text: str | None
+    application_deadline_text: str | None
     link: str
-    score: Optional[float] = None
+    score: float | None = None
 
 
 class SearchResponse(BaseModel):
@@ -38,7 +35,7 @@ class SearchResponse(BaseModel):
 
 class ProgramDetail(SearchResult):
     course_type: int
-    degree: Optional[str]
-    duration: Optional[str]
-    beginning: Optional[str]
+    degree: str | None
+    duration: str | None
+    beginning: str | None
     raw_sections: dict
