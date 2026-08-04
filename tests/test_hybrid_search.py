@@ -1,90 +1,46 @@
-import asyncio
 import pytest
-from datetime import datetime, timezone
-from fastapi.testclient import TestClient
 from qdrant_client.models import PointStruct
-from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
-from sqlalchemy.pool import NullPool
 
-from daad_search.db.models import Base, Program
-from daad_search.db.session import engine
-from daad_search.ingestion.embeddings import COLLECTION_NAME, ensure_collection, get_qdrant_client
 from daad_search.api import search as search_module
-from daad_search.api.main import app, get_session
+from daad_search.ingestion import embeddings as embeddings_module
 
 pytestmark = pytest.mark.integration
 
+TWO_PROGRAMS = [
+    dict(id=1, course_name="Data Science MSc", link="https://example.com/1"),
+    dict(
+        id=2, course_name="Literature MA", link="https://example.com/2",
+        subject="Literature", degree="Master of Arts",
+    ),
+]
 
-def _program(**overrides) -> Program:
-    defaults = dict(
-        course_name_short="Test", university="Test University", city="Berlin",
-        languages=["English"], subject="Computer Science", course_type=2,
-        degree="Master of Science", duration="4 semesters", beginning="Winter semester",
-        tuition_fees_text="No tuition fees", has_tuition_fees=False,
-        application_deadline_text="15 July", raw_sections={},
-        scraped_at=datetime.now(timezone.utc),
+# Program 1 sits on the first axis, program 2 on the second; the fake query
+# vector points at the first axis, so program 1 must always rank higher.
+VECTOR_1 = [1.0, 0.0] + [0.0] * 1022
+VECTOR_2 = [0.0, 1.0] + [0.0] * 1022
+
+
+@pytest.fixture
+def seeded_qdrant(monkeypatch, test_qdrant):
+    test_qdrant.upsert(
+        collection_name=embeddings_module.COLLECTION_NAME,
+        points=[
+            PointStruct(id=1, vector=VECTOR_1, payload={"program_id": 1}),
+            PointStruct(id=2, vector=VECTOR_2, payload={"program_id": 2}),
+        ],
+        wait=True,
     )
-    defaults.update(overrides)
-    return Program(**defaults)
-
-
-@pytest.fixture(autouse=True)
-def setup_db_and_qdrant(monkeypatch):
-    # TestClient below drives the FastAPI app from a separate thread/event
-    # loop. The module-level `engine` from db.session is a pooled engine
-    # whose connections get bound to whichever loop first uses them, so
-    # reusing it across the fixture's loop and TestClient's loop raises
-    # "Future attached to a different loop". Use a dedicated NullPool
-    # engine (never reuses a connection across loops) and override the
-    # app's get_session dependency to use it, mirroring the established
-    # pattern in tests/test_search_api.py.
-    test_engine = create_async_engine(engine.url, echo=False, poolclass=NullPool)
-    test_session_factory = async_sessionmaker(test_engine, expire_on_commit=False)
-
-    async def _setup():
-        async with test_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-            await conn.run_sync(Base.metadata.create_all)
-
-        async with test_session_factory() as session:
-            session.add_all([
-                _program(id=1, course_name="Data Science MSc", link="https://example.com/1"),
-                _program(
-                    id=2, course_name="Literature MA", link="https://example.com/2",
-                    subject="Literature", degree="Master of Arts",
-                ),
-            ])
-            await session.commit()
-
-    asyncio.run(_setup())
-
-    async def override_get_session():
-        async with test_session_factory() as session:
-            yield session
-
-    app.dependency_overrides[get_session] = override_get_session
-
-    qdrant = get_qdrant_client()
-    ensure_collection(qdrant)
-    qdrant.upsert(collection_name=COLLECTION_NAME, points=[
-        PointStruct(id=1, vector=[1.0, 0.0] + [0.0] * 1022, payload={"program_id": 1}),
-        PointStruct(id=2, vector=[0.0, 1.0] + [0.0] * 1022, payload={"program_id": 2}),
-    ])
 
     def fake_embed(texts: list[str]) -> list[list[float]]:
-        return [[1.0, 0.0] + [0.0] * 1022 for _ in texts]
+        return [list(VECTOR_1) for _ in texts]
 
     monkeypatch.setattr(search_module, "embed_texts", fake_embed)
-
-    yield
-
-    app.dependency_overrides.pop(get_session, None)
-    asyncio.run(test_engine.dispose())
+    return test_qdrant
 
 
-def test_hybrid_search_ranks_semantically_closest_first():
-    client = TestClient(app)
-    response = client.post("/search", json={
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_hybrid_search_ranks_semantically_closest_first(api_client, seeded_qdrant):
+    response = api_client.post("/search", json={
         "filters": {"languages": ["English"]},
         "semantic_query": "machine learning and data analysis",
         "limit": 20,
@@ -93,3 +49,44 @@ def test_hybrid_search_ranks_semantically_closest_first():
     body = response.json()
     assert body["results"][0]["id"] == 1
     assert body["results"][0]["score"] > body["results"][1]["score"]
+
+
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_semantic_only_search_skips_candidate_id_filter(api_client, seeded_qdrant, monkeypatch):
+    """With no active filters, Qdrant is queried unrestricted (no HasIdCondition)."""
+    seen_candidate_ids = []
+    real_rank = search_module.semantic_rank
+
+    async def spy(candidate_ids, query, limit, offset=0):
+        seen_candidate_ids.append(candidate_ids)
+        return await real_rank(candidate_ids, query, limit, offset)
+
+    monkeypatch.setattr(search_module, "semantic_rank", spy)
+
+    response = api_client.post("/search", json={"semantic_query": "machine learning", "limit": 20})
+    assert response.status_code == 200
+    body = response.json()
+    assert seen_candidate_ids == [None]
+    assert body["results"][0]["id"] == 1
+    assert body["total_matched"] == 2
+
+
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_semantic_search_paginates(api_client, seeded_qdrant):
+    first = api_client.post(
+        "/search", json={"semantic_query": "machine learning", "limit": 1, "offset": 0}
+    ).json()
+    second = api_client.post(
+        "/search", json={"semantic_query": "machine learning", "limit": 1, "offset": 1}
+    ).json()
+
+    assert [r["id"] for r in first["results"]] == [1]
+    assert [r["id"] for r in second["results"]] == [2]
+    assert first["total_matched"] == second["total_matched"] == 2
+
+
+@pytest.mark.seed_programs([])
+def test_semantic_search_on_empty_catalog_returns_no_results(api_client, seeded_qdrant):
+    response = api_client.post("/search", json={"semantic_query": "machine learning"})
+    assert response.status_code == 200
+    assert response.json() == {"results": [], "total_matched": 0}

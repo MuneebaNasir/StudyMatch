@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SearchFilters(BaseModel):
@@ -12,7 +12,8 @@ class SearchFilters(BaseModel):
 class SearchRequest(BaseModel):
     filters: SearchFilters | None = None
     semantic_query: str | None = None
-    limit: int = 20
+    limit: int = Field(20, ge=1, le=100)
+    offset: int = Field(0, ge=0)
 
 
 class SearchResult(BaseModel):

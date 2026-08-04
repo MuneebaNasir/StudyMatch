@@ -1,81 +1,20 @@
 import pytest
-from datetime import datetime, timezone
-from fastapi.testclient import TestClient
-import asyncio
-from unittest.mock import AsyncMock, patch
-
-from daad_search.db.models import Base, Program
-from daad_search.db.session import engine, async_session_factory
-from daad_search.api.main import app, get_session
-from sqlalchemy.pool import NullPool
-from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 pytestmark = pytest.mark.integration
 
-# Global test engine and session factory
-_test_engine = None
-_test_session_factory = None
+TWO_PROGRAMS = [
+    dict(id=1, course_name="Data Science MSc", link="https://example.com/1"),
+    dict(
+        id=2, course_name="Mechanical Engineering MSc", link="https://example.com/2",
+        languages=["German"], subject="Mechanical Engineering",
+        tuition_fees_text="1500 EUR/semester", has_tuition_fees=True,
+    ),
+]
 
 
-def _program(**overrides) -> Program:
-    defaults = dict(
-        course_name_short="Test", university="Test University", city="Berlin",
-        languages=["English"], subject="Computer Science", course_type=2,
-        degree="Master of Science", duration="4 semesters", beginning="Winter semester",
-        tuition_fees_text="No tuition fees", has_tuition_fees=False,
-        application_deadline_text="15 July", raw_sections={},
-        scraped_at=datetime.now(timezone.utc),
-    )
-    defaults.update(overrides)
-    return Program(**defaults)
-
-
-@pytest.fixture(scope="session", autouse=True)
-def setup_db():
-    global _test_engine, _test_session_factory
-
-    async def _setup():
-        # Use NullPool for tests to avoid connection pooling issues
-        test_engine = create_async_engine(
-            engine.url, echo=False, poolclass=NullPool
-        )
-
-        async with test_engine.begin() as conn:
-            await conn.run_sync(Base.metadata.drop_all)
-            await conn.run_sync(Base.metadata.create_all)
-
-        test_session_factory = async_sessionmaker(test_engine, expire_on_commit=False)
-        async with test_session_factory() as session:
-            session.add_all([
-                _program(id=1, course_name="Data Science MSc", link="https://example.com/1"),
-                _program(
-                    id=2, course_name="Mechanical Engineering MSc", link="https://example.com/2",
-                    languages=["German"], subject="Mechanical Engineering",
-                    tuition_fees_text="1500 EUR/semester", has_tuition_fees=True,
-                ),
-            ])
-            await session.commit()
-
-        return test_engine, test_session_factory
-
-    _test_engine, _test_session_factory = asyncio.run(_setup())
-
-    # Override the app's dependency
-    async def override_get_session():
-        async with _test_session_factory() as session:
-            yield session
-
-    app.dependency_overrides[get_session] = override_get_session
-
-    yield
-
-    # Cleanup
-    asyncio.run(_test_engine.dispose())
-
-
-def test_search_filters_by_language_and_tuition():
-    client = TestClient(app)
-    response = client.post("/search", json={
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_search_filters_by_language_and_tuition(api_client):
+    response = api_client.post("/search", json={
         "filters": {"languages": ["English"], "max_tuition_free_only": True},
         "limit": 20,
     })
@@ -85,21 +24,63 @@ def test_search_filters_by_language_and_tuition():
     assert body["results"][0]["id"] == 1
 
 
-def test_search_with_no_filters_returns_all():
-    client = TestClient(app)
-    response = client.post("/search", json={"limit": 20})
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_search_with_no_filters_returns_all(api_client):
+    response = api_client.post("/search", json={"limit": 20})
     assert response.status_code == 200
     assert response.json()["total_matched"] == 2
 
 
-def test_get_program_returns_full_detail():
-    client = TestClient(app)
-    response = client.get("/programs/1")
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_search_paginates_with_offset(api_client):
+    first = api_client.post("/search", json={"limit": 1, "offset": 0}).json()
+    second = api_client.post("/search", json={"limit": 1, "offset": 1}).json()
+
+    assert first["total_matched"] == second["total_matched"] == 2
+    assert len(first["results"]) == len(second["results"]) == 1
+    first_ids = {r["id"] for r in first["results"]}
+    second_ids = {r["id"] for r in second["results"]}
+    assert first_ids.isdisjoint(second_ids)
+    assert first_ids | second_ids == {1, 2}
+
+    # Offset past the end returns an empty page, not an error.
+    beyond = api_client.post("/search", json={"limit": 20, "offset": 5}).json()
+    assert beyond["results"] == []
+    assert beyond["total_matched"] == 2
+
+
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+@pytest.mark.parametrize(
+    "payload",
+    [
+        {"limit": -1},
+        {"limit": 0},
+        {"limit": 10000000},
+        {"offset": -5},
+    ],
+)
+def test_search_rejects_out_of_bounds_pagination(api_client, payload):
+    response = api_client.post("/search", json=payload)
+    assert response.status_code == 422
+
+
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_search_empty_result_set(api_client):
+    response = api_client.post("/search", json={"filters": {"city": "Nowhere"}})
+    assert response.status_code == 200
+    body = response.json()
+    assert body["results"] == []
+    assert body["total_matched"] == 0
+
+
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_get_program_returns_full_detail(api_client):
+    response = api_client.get("/programs/1")
     assert response.status_code == 200
     assert response.json()["course_name"] == "Data Science MSc"
 
 
-def test_get_program_not_found_returns_404():
-    client = TestClient(app)
-    response = client.get("/programs/999")
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_get_program_not_found_returns_404(api_client):
+    response = api_client.get("/programs/999")
     assert response.status_code == 404

@@ -20,10 +20,12 @@ async def search(
 ) -> SearchResponse:
     if request.semantic_query:
         results, total = await hybrid_search(
-            session, request.filters, request.semantic_query, request.limit
+            session, request.filters, request.semantic_query, request.limit, request.offset
         )
     else:
-        results, total = await filtered_search(session, request.filters, request.limit)
+        results, total = await filtered_search(
+            session, request.filters, request.limit, request.offset
+        )
     return SearchResponse(results=results, total_matched=total)
 
 
