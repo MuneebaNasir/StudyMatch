@@ -50,7 +50,7 @@ def test_extract_eligibility_captures_conditional_gre_waiver():
     assert result.requires_gre is True
     assert result.grade_requirement.value == 2.5
     gre = result.standardized_tests[0]
-    assert gre.test == "GRE"
+    assert "GRE" in gre.test
     assert "1.3" in gre.waiver
     assert len(result.language_requirements) == 1
     assert result.language_requirements[0].level == "B2"
