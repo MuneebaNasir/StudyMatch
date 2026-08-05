@@ -52,6 +52,16 @@ class EligibilityExtraction(BaseModel):
     """Structured eligibility criteria extracted from a DAAD program's raw
     admission-requirements and language-requirement text."""
 
+    # KNOWN LIMITATION -- requires_gre/requires_gmat are a best-effort *flattened*
+    # summary of what may be a conditional requirement (e.g. "GRE required only
+    # for applicants from non-EU/EEA countries"). For such conditional cases the
+    # flat boolean is not reliable: it has been observed to vary between
+    # otherwise-identical extraction runs over the same input text.
+    # The authoritative detail is standardized_tests[].required /
+    # .eligibility_condition / .waiver -- stable across those same runs, and
+    # persisted in the eligibility.structured_eligibility JSONB column. Any
+    # consumer that must reason correctly about conditional GRE/GMAT
+    # requirements has to read that nested detail, not just these booleans.
     requires_gre: bool | None = None
     requires_gmat: bool | None = None
     min_german_level: str | None = None
