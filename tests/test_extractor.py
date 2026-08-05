@@ -1,6 +1,7 @@
 import pytest
 
-from daad_search.extraction.extractor import build_prompt, extract_eligibility
+from daad_search.extraction import extractor as extractor_module
+from daad_search.extraction.extractor import build_prompt, extract_eligibility, get_extraction_llm
 
 
 def test_build_prompt_includes_course_and_university():
@@ -24,6 +25,15 @@ def test_build_prompt_includes_provided_raw_sections():
     assert "Bachelor's degree required" in prompt
     assert "No minimum level" in prompt
     assert "B2 required" in prompt
+
+
+def test_get_extraction_llm_rejects_missing_api_key(monkeypatch):
+    """An unset key 401s on every call, which the circuit breaker would
+    otherwise misreport as quota exhaustion — a diagnosis no re-run can fix."""
+    monkeypatch.setattr(extractor_module.settings, "groq_api_key", "")
+
+    with pytest.raises(RuntimeError, match="GROQ_API_KEY"):
+        get_extraction_llm()
 
 
 @pytest.mark.integration

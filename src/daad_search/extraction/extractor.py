@@ -43,6 +43,11 @@ def build_prompt(course_name: str, university: str, raw_sections: dict) -> str:
 def get_extraction_llm() -> ChatGroq:
     """Process-wide Groq client (constructing one per call leaks connections)."""
     global _llm
+    # An empty key 401s on every request — not retryable — which looks exactly
+    # like quota exhaustion to the consecutive-failure circuit breaker. Name the
+    # real cause on the first program instead of after 5 opaque failures.
+    if not settings.groq_api_key:
+        raise RuntimeError("GROQ_API_KEY is not set (see .env.example)")
     if _llm is None:
         _llm = ChatGroq(
             model=EXTRACTION_MODEL, api_key=settings.groq_api_key, temperature=0, max_retries=3
