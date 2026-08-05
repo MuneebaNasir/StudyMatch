@@ -59,11 +59,14 @@ def test_extract_eligibility_captures_conditional_gre_waiver():
 
     assert result.requires_gre is True
     assert result.grade_requirement.value == 2.5
-    gre = result.standardized_tests[0]
-    assert "GRE" in gre.test
+    gre = next(t for t in result.standardized_tests if "GRE" in t.test.upper())
     assert "1.3" in gre.waiver
-    assert len(result.language_requirements) == 1
-    assert result.language_requirements[0].level == "B2"
+    # Deliberately no assertion on the *number* of language requirements: the
+    # German text ("No minimum language level required") maps to the schema's
+    # own level="none_required", so both a 1-entry (English only) and a 2-entry
+    # (German none_required + English B2) extraction are schema-conformant.
+    english = next(lr for lr in result.language_requirements if lr.language == "English")
+    assert english.level == "B2"
 
 
 @pytest.mark.integration
