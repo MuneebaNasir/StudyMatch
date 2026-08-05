@@ -3,6 +3,7 @@ import asyncio
 import logging
 
 from .db.session import init_db
+from .extraction.pipeline import run_extraction
 from .ingestion.pipeline import run_ingestion
 
 
@@ -21,6 +22,18 @@ def main() -> None:
     ingest_parser.add_argument(
         "--refresh", action="store_true",
         help="Ignore cached DAAD responses and re-fetch everything for this run",
+    )
+
+    extract_parser = subparsers.add_parser(
+        "extract", help="Extract structured eligibility criteria for programs missing it"
+    )
+    extract_parser.add_argument(
+        "--ids", type=int, nargs="*", default=None,
+        help="Only extract these DAAD program IDs (for testing)",
+    )
+    extract_parser.add_argument(
+        "--limit", type=int, default=None,
+        help="Process at most this many programs this run (e.g. to respect a daily quota)",
     )
 
     args = parser.parse_args()
@@ -42,6 +55,17 @@ def main() -> None:
             print(
                 f"Reconciled away {len(result['reconciled_ids'])} programs "
                 f"no longer listed by DAAD: {result['reconciled_ids']}"
+            )
+    elif args.command == "extract":
+        result = asyncio.run(run_extraction(limit_ids=args.ids, limit=args.limit))
+        print(
+            f"Extracted eligibility for {result['succeeded']}/{result['total_candidates']} "
+            f"candidate programs. Failed IDs: {result['failed_ids']}"
+        )
+        if result["stopped_early"]:
+            print(
+                "Stopped early after repeated consecutive failures (likely quota exhausted). "
+                "Re-run `extract` later to resume."
             )
 
 
