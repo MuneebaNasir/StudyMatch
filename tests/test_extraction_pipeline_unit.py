@@ -27,6 +27,26 @@ async def test_extract_program_isolates_extraction_failure(monkeypatch):
     assert program_id == 1
 
 
+async def test_extract_program_isolates_failure_in_value_construction(monkeypatch):
+    """Covers the window between the two original try/except blocks: a
+    result that raises when its fields are read/dumped (e.g. a future
+    schema change) must still be isolated as a per-program failure, not
+    propagate out of extract_program."""
+
+    class ExplodingResult:
+        def __getattr__(self, name):
+            raise AttributeError(f"unexpected attribute access: {name}")
+
+    def fake_extract_eligibility(course_name, university, raw_sections):
+        return ExplodingResult()
+
+    monkeypatch.setattr(pipeline_module, "extract_eligibility", fake_extract_eligibility)
+
+    program_id, ok = await pipeline_module.extract_program(_program(2))
+    assert ok is False
+    assert program_id == 2
+
+
 async def test_process_candidates_stops_after_consecutive_failure_limit(monkeypatch):
     programs = [_program(i) for i in range(1, 11)]
     call_count = {"n": 0}

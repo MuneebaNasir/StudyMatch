@@ -43,27 +43,23 @@ async def extract_program(program: Program) -> tuple[int, bool]:
         result = await asyncio.to_thread(
             extract_eligibility, program.course_name, program.university, program.raw_sections
         )
-    except Exception:
-        logger.exception("Failed to extract eligibility for program %s", program.id)
-        return program.id, False
 
-    values = dict(
-        requires_gre=result.requires_gre,
-        requires_gmat=result.requires_gmat,
-        min_german_level=result.min_german_level,
-        min_english_level=result.min_english_level,
-        min_grade_value=result.grade_requirement.value if result.grade_requirement else None,
-        min_grade_scale_note=result.grade_requirement.scale if result.grade_requirement else None,
-        extraction_confidence=result.extraction_confidence,
-        structured_eligibility=result.model_dump(),
-        extracted_at=datetime.now(timezone.utc),
-    )
+        values = dict(
+            requires_gre=result.requires_gre,
+            requires_gmat=result.requires_gmat,
+            min_german_level=result.min_german_level,
+            min_english_level=result.min_english_level,
+            min_grade_value=result.grade_requirement.value if result.grade_requirement else None,
+            min_grade_scale_note=result.grade_requirement.scale if result.grade_requirement else None,
+            extraction_confidence=result.extraction_confidence,
+            structured_eligibility=result.model_dump(),
+            extracted_at=datetime.now(timezone.utc),
+        )
 
-    try:
         async with async_session_factory() as session:
             await upsert_eligibility(session, program.id, values)
     except Exception:
-        logger.exception("Failed to store eligibility for program %s", program.id)
+        logger.exception("Failed to extract/store eligibility for program %s", program.id)
         return program.id, False
 
     return program.id, True
