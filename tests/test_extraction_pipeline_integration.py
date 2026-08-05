@@ -91,16 +91,20 @@ async def test_run_extraction_populates_eligibility_table(extraction_env, make_p
         by_id = {row.program_id: row for row in rows}
 
     assert set(by_id.keys()) == {10396, 9012}
-    assert by_id[10396].requires_gre is True
     assert by_id[10396].min_grade_value == 2.5
     # Select the GRE entry by predicate rather than by position: nothing
     # guarantees the model orders standardized_tests any particular way, and a
     # missing waiver should read as a real failure, not a TypeError on None.
+    # Deliberately nothing here asserts the top-level `requires_gre` column --
+    # schema.py documents it as an unreliable flattening for conditional
+    # requirements, which is precisely what program 10396 is.
     gre_entries = [
         t for t in by_id[10396].structured_eligibility["standardized_tests"]
         if "GRE" in t["test"].upper()
     ]
     assert gre_entries, "expected a GRE entry in standardized_tests"
+    assert gre_entries[0]["eligibility_condition"] is not None
+    assert "eea" in gre_entries[0]["eligibility_condition"].lower()
     assert gre_entries[0]["waiver"] is not None
     assert "1.3" in gre_entries[0]["waiver"]
 

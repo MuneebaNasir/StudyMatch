@@ -57,9 +57,18 @@ def test_extract_eligibility_captures_conditional_gre_waiver():
     }
     result = extract_eligibility("Additive Manufacturing", "Paderborn University", raw_sections)
 
-    assert result.requires_gre is True
     assert result.grade_requirement.value == 2.5
+
+    # No assertion on the top-level `requires_gre`: schema.py documents it as an
+    # unreliable flattening of a *conditional* requirement, and this fixture is
+    # exactly that case (GRE only for non-EU/EEA applicants). Nor on the nested
+    # `gre.required` -- that is the same boolean judgement one level down. What
+    # this test is named for, and what stays stable run to run, is whether the
+    # condition and the waiver were captured as text.
     gre = next(t for t in result.standardized_tests if "GRE" in t.test.upper())
+    assert gre.eligibility_condition is not None, "GRE's conditional scope was dropped"
+    assert "eea" in gre.eligibility_condition.lower()
+    assert gre.waiver is not None, "GRE's CGPA waiver was dropped"
     assert "1.3" in gre.waiver
     # Deliberately no assertion on the *number* of language requirements: the
     # German text ("No minimum language level required") maps to the schema's
