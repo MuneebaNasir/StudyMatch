@@ -21,7 +21,8 @@ async def select_candidates(
     stmt = (
         select(Program)
         .outerjoin(Eligibility, Eligibility.program_id == Program.id)
-        .where(Eligibility.program_id.is_(None))
+        # Programs with none of the relevant text are never worth an LLM call,
+        # even when named explicitly — the call cannot produce anything.
         .where(
             Program.raw_sections.has_key("admission_requirements")
             | Program.raw_sections.has_key("german_language")
@@ -29,7 +30,14 @@ async def select_candidates(
         )
         .order_by(Program.id)
     )
-    if limit_ids is not None:
+    if limit_ids is None:
+        # A bare run only picks up what hasn't been extracted yet, so it
+        # resumes cleanly after a quota cutoff.
+        stmt = stmt.where(Eligibility.program_id.is_(None))
+    else:
+        # An explicit --ids list is targeted re-extraction: process exactly
+        # those programs regardless of prior extraction state (upsert_eligibility
+        # is ON CONFLICT DO UPDATE, so re-extracting simply refreshes the row).
         stmt = stmt.where(Program.id.in_(limit_ids))
     if limit is not None:
         stmt = stmt.limit(limit)
