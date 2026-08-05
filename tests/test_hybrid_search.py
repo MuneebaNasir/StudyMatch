@@ -31,7 +31,9 @@ def seeded_qdrant(monkeypatch, test_qdrant):
         wait=True,
     )
 
-    def fake_embed(texts: list[str]) -> list[list[float]]:
+    # Signature must mirror embeddings.embed_texts, which callers invoke as
+    # embed_texts(texts, "query").
+    def fake_embed(texts: list[str], input_type: str = "document") -> list[list[float]]:
         return [list(VECTOR_1) for _ in texts]
 
     monkeypatch.setattr(search_module, "embed_texts", fake_embed)
