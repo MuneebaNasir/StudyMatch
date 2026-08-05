@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     collection_name: str = "programs"
     test_collection_name: str = "programs_test"
     voyage_api_key: str = ""
+    groq_api_key: str = ""
     # "voyage" (default, needs VOYAGE_API_KEY) or "local" (sentence-transformers,
     # runs on-device — no API key, no rate limit, no cost). Both produce
     # EMBEDDING_DIM-sized vectors so the Qdrant collection schema is unaffected,

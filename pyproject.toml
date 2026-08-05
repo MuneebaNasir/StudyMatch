@@ -17,6 +17,7 @@ dependencies = [
     "qdrant-client>=1.9",
     "voyageai>=0.2",
     "sentence-transformers>=3.0",
+    "langchain-groq>=0.2",
     "fastapi>=0.110",
     "uvicorn[standard]>=0.29",
 ]
