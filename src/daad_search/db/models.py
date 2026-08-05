@@ -42,8 +42,15 @@ class Program(Base):
 class Eligibility(Base):
     __tablename__ = "eligibility"
 
+    # ON DELETE CASCADE: `reconcile_deleted` bulk-deletes Program rows for
+    # programs DAAD has delisted. Without the cascade that DELETE raises a
+    # foreign-key violation and aborts the whole `ingest` run. An extraction
+    # describes a program that no longer exists, so it should go with it.
     program_id: Mapped[int] = mapped_column(
-        Integer, ForeignKey("programs.id"), primary_key=True, autoincrement=False
+        Integer,
+        ForeignKey("programs.id", ondelete="CASCADE"),
+        primary_key=True,
+        autoincrement=False,
     )
     requires_gre: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     requires_gmat: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
