@@ -1,0 +1,35 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+
+import type { QueryResult } from "../types";
+import { ResultsList } from "./ResultsList";
+
+const RESULT: QueryResult = {
+  id: 1, course_name: "Robotics MSc", university: "TU X", city: "Berlin", languages: ["English"],
+  subject: null, tuition_fees_text: null, application_deadline_text: null, link: "https://example.com",
+  score: null, eligibility_verdict: "eligible", eligibility_reasoning: "Meets the grade threshold.",
+};
+
+describe("ResultsList", () => {
+  it("shows a loading skeleton while isLoading is true", () => {
+    render(<ResultsList results={[]} isLoading={true} onSelectProgram={vi.fn()} />);
+    expect(screen.getByTestId("results-loading")).toBeInTheDocument();
+  });
+
+  it("shows the empty state when there are no results", () => {
+    render(<ResultsList results={[]} isLoading={false} onSelectProgram={vi.fn()} />);
+    expect(screen.getByText(/no programs matched/i)).toBeInTheDocument();
+  });
+
+  it("renders a card per result with its verdict badge, and calls onSelectProgram when clicked", async () => {
+    const onSelectProgram = vi.fn();
+    render(<ResultsList results={[RESULT]} isLoading={false} onSelectProgram={onSelectProgram} />);
+
+    expect(screen.getByText("Robotics MSc")).toBeInTheDocument();
+    expect(screen.getByText("Eligible")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByText("Robotics MSc"));
+    expect(onSelectProgram).toHaveBeenCalledWith(1);
+  });
+});
