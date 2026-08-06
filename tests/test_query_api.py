@@ -48,6 +48,7 @@ def test_query_reasoning_failure_returns_unclear_verdicts(api_client, seeded_ses
     assert result["eligibility_verdict"] == "unclear"
     assert body["extracted_filters"] is not None
     assert body["extracted_profile"]["nationality"] == "Pakistan"
+    assert body["semantic_query"] is None  # this test's ParsedQuery mock never sets it
 
 
 @pytest.mark.seed_programs([

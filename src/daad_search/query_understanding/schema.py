@@ -50,3 +50,4 @@ class QueryResponse(BaseModel):
     total_matched: int
     extracted_filters: SearchFilters | None = None
     extracted_profile: StudentProfile | None = None
+    semantic_query: str | None = None

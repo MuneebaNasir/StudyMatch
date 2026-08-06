@@ -1,4 +1,8 @@
 import pytest
+import asyncio
+from datetime import datetime, timezone
+
+from daad_search.db.models import Eligibility
 
 pytestmark = pytest.mark.integration
 
@@ -10,6 +14,19 @@ TWO_PROGRAMS = [
         tuition_fees_text="1500 EUR/semester", has_tuition_fees=True,
     ),
 ]
+
+
+def _seed_eligibility(session_factory, program_id: int, structured_eligibility: dict) -> None:
+    async def _seed() -> None:
+        async with session_factory() as session:
+            session.add(Eligibility(
+                program_id=program_id, extraction_confidence="high",
+                structured_eligibility=structured_eligibility,
+                extracted_at=datetime.now(timezone.utc),
+            ))
+            await session.commit()
+
+    asyncio.run(_seed())
 
 
 @pytest.mark.seed_programs(TWO_PROGRAMS)
@@ -105,3 +122,33 @@ def test_get_program_returns_full_detail(api_client):
 def test_get_program_not_found_returns_404(api_client):
     response = api_client.get("/programs/999")
     assert response.status_code == 404
+
+
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_get_program_includes_structured_eligibility_when_present(api_client, seeded_session_factory):
+    _seed_eligibility(seeded_session_factory, 1, {"grade_requirement": {"value": 2.5}})
+
+    response = api_client.get("/programs/1")
+
+    assert response.status_code == 200
+    assert response.json()["structured_eligibility"] == {"grade_requirement": {"value": 2.5}}
+
+
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_get_program_structured_eligibility_is_none_when_absent(api_client):
+    response = api_client.get("/programs/1")
+
+    assert response.status_code == 200
+    assert response.json()["structured_eligibility"] is None
+
+
+def test_cors_allows_the_configured_frontend_origin(api_client):
+    response = api_client.options(
+        "/search",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+        },
+    )
+
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"

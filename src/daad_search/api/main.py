@@ -1,7 +1,9 @@
 from fastapi import Depends, FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..db.models import Program
+from ..config import settings
+from ..db.models import Eligibility, Program
 from ..db.session import async_session_factory
 from ..query_understanding.schema import QueryRequest, QueryResponse
 from .query import handle_query
@@ -9,6 +11,13 @@ from .schemas import ProgramDetail, SearchRequest, SearchResponse
 from .search import filtered_search, hybrid_search, to_search_result
 
 app = FastAPI(title="DAAD Search API")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.cors_allowed_origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 async def get_session() -> AsyncSession:
@@ -46,6 +55,8 @@ async def get_program(
     if row is None:
         raise HTTPException(status_code=404, detail="Program not found")
 
+    eligibility = await session.get(Eligibility, program_id)
+
     base = to_search_result(row)
     return ProgramDetail(
         **base.model_dump(),
@@ -54,4 +65,5 @@ async def get_program(
         duration=row.duration,
         beginning=row.beginning,
         raw_sections=row.raw_sections,
+        structured_eligibility=eligibility.structured_eligibility if eligibility else None,
     )

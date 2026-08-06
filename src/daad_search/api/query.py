@@ -93,4 +93,5 @@ async def handle_query(session: AsyncSession, query: str, limit: int) -> QueryRe
         total_matched=total,
         extracted_filters=filters if parsed is not None else None,
         extracted_profile=profile,
+        semantic_query=semantic_query if parsed is not None else None,
     )

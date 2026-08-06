@@ -40,3 +40,4 @@ class ProgramDetail(SearchResult):
     duration: str | None
     beginning: str | None
     raw_sections: dict
+    structured_eligibility: dict | None = None
