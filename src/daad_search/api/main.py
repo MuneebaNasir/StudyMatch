@@ -3,6 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models import Program
 from ..db.session import async_session_factory
+from ..query_understanding.schema import QueryRequest, QueryResponse
+from .query import handle_query
 from .schemas import ProgramDetail, SearchRequest, SearchResponse
 from .search import filtered_search, hybrid_search, to_search_result
 
@@ -27,6 +29,13 @@ async def search(
             session, request.filters, request.limit, request.offset
         )
     return SearchResponse(results=results, total_matched=total)
+
+
+@app.post("/query", response_model=QueryResponse)
+async def query(
+    request: QueryRequest, session: AsyncSession = Depends(get_session)
+) -> QueryResponse:
+    return await handle_query(session, request.query, request.limit)
 
 
 @app.get("/programs/{program_id}", response_model=ProgramDetail)

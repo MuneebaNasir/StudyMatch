@@ -1,8 +1,8 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from ..api.schemas import SearchFilters
+from ..api.schemas import SearchFilters, SearchResult
 
 
 class StudentProfile(BaseModel):
@@ -33,3 +33,20 @@ class CandidateForReasoning(BaseModel):
     program_id: int
     course_name: str
     structured_eligibility: dict
+
+
+class QueryRequest(BaseModel):
+    query: str
+    limit: int = Field(20, ge=1, le=100)
+
+
+class QueryResult(SearchResult):
+    eligibility_verdict: Literal["eligible", "likely_eligible", "not_eligible", "unclear", "no_data"]
+    eligibility_reasoning: str | None = None
+
+
+class QueryResponse(BaseModel):
+    results: list[QueryResult]
+    total_matched: int
+    extracted_filters: SearchFilters | None = None
+    extracted_profile: StudentProfile | None = None
