@@ -110,6 +110,8 @@ class BatchEligibilityReasoning(BaseModel):
 
 ### `POST /query`
 
+`limit` mirrors `/search`'s own field exactly (spec 1): `limit: int = Field(20, ge=1, le=100)`. Omitting it defaults to 20, never unbounded; `<1` or `>100` is rejected with a 422, same as `/search`. Eligibility reasoning is separately capped at `min(10, limit)` regardless — with the default `limit=20`, the first 10 (by rank) get a verdict and the remaining 10 are real search matches too, just past the reasoning cutoff. Every result carries an `eligibility_verdict`; `"no_data"` covers both "past the top-10 reasoning cutoff" and "within it but lacking an `Eligibility` row" — the frontend doesn't need to distinguish the two, both mean "no verdict available for this one."
+
 ```jsonc
 // Request
 { "query": "bachelors in AI from Pakistan, CGPA 3.2, English-taught no-fee masters in ML", "limit": 20 }
