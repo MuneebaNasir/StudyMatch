@@ -16,6 +16,14 @@ class Settings(BaseSettings):
     test_collection_name: str = "programs_test"
     voyage_api_key: str = ""
     groq_api_key: str = ""
+    mistral_api_key: str = ""
+    gemini_api_key: str = ""
+    # Available for a manual, explicit override only -- NEVER read by the
+    # automatic Groq -> Mistral -> Gemini fallback chain in
+    # query_understanding/llm.py. Wiring a paid provider into an automatic
+    # chain risks incurring real charges the moment the free tiers are
+    # exhausted, without anyone choosing that to happen.
+    openai_api_key: str = ""
     # "voyage" (default, needs VOYAGE_API_KEY) or "local" (sentence-transformers,
     # runs on-device — no API key, no rate limit, no cost). Both produce
     # EMBEDDING_DIM-sized vectors so the Qdrant collection schema is unaffected,
