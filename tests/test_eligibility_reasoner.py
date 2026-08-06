@@ -4,6 +4,7 @@ import pytest
 from daad_search.query_understanding.reasoner import (
     build_reasoning_prompt,
     convert_to_german_scale,
+    detect_grade_scale,
     reason_about_eligibility,
 )
 from daad_search.query_understanding.schema import CandidateForReasoning, StudentProfile
@@ -36,6 +37,47 @@ def test_convert_to_german_scale_handles_a_percentage_scale():
 def test_convert_to_german_scale_returns_none_for_unrecognized_scale():
     assert convert_to_german_scale(7.5, "some obscure national scale") is None
     assert convert_to_german_scale(3.0, None) is None
+
+
+def test_convert_to_german_scale_handles_a_10_point_cgpa_scale():
+    # Regression: "gpa" is a substring of "cgpa", so this used to be run
+    # through the 4.0-scale formula, producing -3.2 and then being clamped
+    # into a perfect German 1.0 for a merely good student.
+    converted = convert_to_german_scale(8.2, "10.0 CGPA scale (India)")
+    assert converted == pytest.approx(2.08)
+    assert converted != pytest.approx(1.0)
+    assert convert_to_german_scale(10.0, "10-point CGPA") == pytest.approx(1.0)
+    assert convert_to_german_scale(5.0, "CGPA out of 10") == pytest.approx(4.0)
+
+
+def test_detect_grade_scale_distinguishes_scale_sizes():
+    assert detect_grade_scale("10.0 CGPA scale (India)") == "cgpa_10"
+    assert detect_grade_scale("4.0 GPA scale (USA)") == "gpa_4"
+    # No size named at all -- a bare GPA conventionally means the 4.0 scale.
+    assert detect_grade_scale("GPA") == "gpa_4"
+    assert detect_grade_scale("percentage (0-100%)") == "percentage"
+    assert detect_grade_scale("some obscure national scale") is None
+
+
+def test_convert_to_german_scale_does_not_treat_1000_point_scale_as_a_percentage():
+    # "100" is a substring of "1000"; only "%"/"percent" may select the
+    # percentage branch.
+    assert detect_grade_scale("1000 point scale") is None
+    assert convert_to_german_scale(850.0, "1000 point scale") is None
+
+
+def test_convert_to_german_scale_returns_none_for_value_outside_detected_scale():
+    # 8.2 cannot be a 4.0-scale GPA: the scale was misidentified, so return
+    # None rather than clamping a nonsense intermediate into a plausible grade.
+    assert convert_to_german_scale(8.2, "4.0 GPA scale (USA)") is None
+    assert convert_to_german_scale(120.0, "percentage (0-100%)") is None
+    assert convert_to_german_scale(-1.0, "10-point CGPA") is None
+
+
+def test_convert_to_german_scale_clamps_only_within_a_correct_scale():
+    # 0% is genuinely in range for a percentage; the raw formula gives 7.0,
+    # which clamps to the worst German grade rather than returning None.
+    assert convert_to_german_scale(0.0, "percentage (0-100%)") == pytest.approx(5.0)
 
 
 def test_build_reasoning_prompt_includes_precomputed_conversion_for_recognized_scale():
