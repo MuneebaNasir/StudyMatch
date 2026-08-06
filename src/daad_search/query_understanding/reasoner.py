@@ -67,6 +67,20 @@ def build_reasoning_prompt(profile: StudentProfile, candidates: list[CandidateFo
     )
 
 
+# KNOWN LIMITATION -- grade comparison against the German scale (1.0 best,
+# 5.0 worst) has been observed to be unreliable on weaker fallback-tier
+# models. The numeric conversion itself is now deterministic (see
+# convert_to_german_scale, injected into the prompt as
+# grade_value_on_german_scale) and has been verified correct and correctly
+# retrieved by the LLM -- the remaining failure mode is the model getting
+# the actual "is 3.0 better or worse than the 2.5 threshold, given lower is
+# better" comparison backwards, despite the direction being stated
+# explicitly. Observed reproducibly via Mistral (the fallback chain's
+# secondary tier); not yet re-verified against Groq's primary-tier model,
+# which was inaccessible (403, account-side) throughout this task's
+# development. Re-test once Groq access is restored -- if verdicts are
+# reliable there, this may be specific to weaker fallback tiers rather than
+# a fundamental prompt limitation.
 def reason_about_eligibility(
     profile: StudentProfile, candidates: list[CandidateForReasoning]
 ) -> list[EligibilityVerdict] | None:
