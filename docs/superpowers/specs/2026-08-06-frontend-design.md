@@ -69,6 +69,7 @@ frontend/
 **Backend touch (small, additive, in `src/daad_search/api/`):**
 1. `main.py` gains `CORSMiddleware`, allowing the Vite dev origin — nothing currently permits a browser on a different port to call the API.
 2. `ProgramDetail` (in `api/schemas.py`) gains `structured_eligibility: dict | None`, populated in `GET /programs/{id}` via a `LEFT JOIN` against `Eligibility`, `None` when no extraction row exists yet — mirrors the lookup pattern `api/query.py` already uses.
+3. `QueryResponse` (in `query_understanding/schema.py`) gains `semantic_query: str | None`, set from `handle_query`'s already-computed local variable. Without this the frontend has no way to recover the LLM-parsed semantic query for the chip-edit re-search call in Data Flow below — `extracted_filters`/`extracted_profile` alone don't carry it.
 
 **Dev workflow:** three local processes — `docker-compose up` (Postgres/Qdrant), `uvicorn` (API), `npm run dev` (frontend) — matching the project's existing local-only posture. No deployment concerns addressed here (spec 6, parked).
 
