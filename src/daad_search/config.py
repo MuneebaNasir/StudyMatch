@@ -27,13 +27,13 @@ class Settings(BaseSettings):
     # Origins allowed to call this API cross-origin. Vite's default dev port
     # is 5173 -- the frontend's dev server runs there unless overridden.
     cors_allowed_origins: list[str] = ["http://localhost:5173"]
-    # "voyage" (default, needs VOYAGE_API_KEY) or "local" (sentence-transformers,
-    # runs on-device — no API key, no rate limit, no cost). Both produce
+    # "local" (default, sentence-transformers, runs on-device — no API key,
+    # no rate limit, no cost) or "voyage" (needs VOYAGE_API_KEY). Both produce
     # EMBEDDING_DIM-sized vectors so the Qdrant collection schema is unaffected,
     # but vectors from different providers are NOT comparable to each other —
     # switching providers on an existing collection requires re-embedding
     # everything (see embeddings.py).
-    embedding_provider: str = "voyage"
+    embedding_provider: str = "local"
     local_embedding_model: str = "BAAI/bge-large-en-v1.5"
     daad_base_url: str = "https://www2.daad.de/deutschland/studienangebote/international-programmes"
     http_user_agent: str = "daad-search-portfolio-project/0.1 (contact: you@example.com)"
