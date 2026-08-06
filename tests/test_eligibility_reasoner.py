@@ -1,7 +1,11 @@
 # tests/test_eligibility_reasoner.py
 import pytest
 
-from daad_search.query_understanding.reasoner import build_reasoning_prompt, reason_about_eligibility
+from daad_search.query_understanding.reasoner import (
+    build_reasoning_prompt,
+    convert_to_german_scale,
+    reason_about_eligibility,
+)
 from daad_search.query_understanding.schema import CandidateForReasoning, StudentProfile
 
 
@@ -18,6 +22,32 @@ def test_build_reasoning_prompt_includes_profile_and_candidates():
     assert "Pakistan" in prompt
     assert "10396" in prompt
     assert "Additive Manufacturing" in prompt
+
+
+def test_convert_to_german_scale_handles_a_4_0_gpa_scale():
+    assert convert_to_german_scale(2.0, "4.0 GPA scale (USA)") == pytest.approx(3.0)
+    assert convert_to_german_scale(3.9, "4.0 GPA scale (USA)") == pytest.approx(1.1)
+
+
+def test_convert_to_german_scale_handles_a_percentage_scale():
+    assert convert_to_german_scale(90.0, "percentage (0-100%)") == pytest.approx(1.6)
+
+
+def test_convert_to_german_scale_returns_none_for_unrecognized_scale():
+    assert convert_to_german_scale(7.5, "some obscure national scale") is None
+    assert convert_to_german_scale(3.0, None) is None
+
+
+def test_build_reasoning_prompt_includes_precomputed_conversion_for_recognized_scale():
+    profile = StudentProfile(grade_value=2.0, grade_scale="4.0 GPA scale (USA)")
+    candidates = [
+        CandidateForReasoning(
+            program_id=10396, course_name="Additive Manufacturing",
+            structured_eligibility={"foo": "bar"},
+        ),
+    ]
+    prompt = build_reasoning_prompt(profile, candidates)
+    assert "3.0" in prompt
 
 
 def test_reason_about_eligibility_returns_empty_list_for_no_candidates():
