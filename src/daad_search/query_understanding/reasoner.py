@@ -14,7 +14,11 @@ For EACH candidate program below, decide a verdict:
 - "not_eligible": the student clearly fails to meet at least one stated requirement
 - "unclear": there isn't enough information in either the program's criteria or the student's profile to judge
 
-Grades: the program's grade threshold is stated on the German scale (1.0 best, 5.0 worst, typically ~4.0 or better required). The student's grade may be stated on a different scale (e.g. a 4.0 GPA scale, or a percentage) -- convert and compare using your own knowledge of standard grade-scale equivalences (similar to DAAD's own conventions), and briefly note your reasoning.
+Grades: the program's grade threshold is stated on the German scale, where LOWER numbers are BETTER (1.0 = best possible, 5.0 = fail) -- this is the OPPOSITE direction from a US-style GPA, where HIGHER numbers are better. Before comparing, convert the student's grade to the German scale:
+- For a 4.0-scale US GPA, use the modified Bavarian formula (DAAD's standard convention): German grade = 1 + 3 x (4.0 - GPA) / (4.0 - 1.0). Example: a 2.0/4.0 GPA (a weak, below-average performance) converts to approximately German 3.0 -- NOT a good grade, since German grades near 3.0 are only "satisfactory". A 3.9/4.0 GPA (excellent) converts to approximately German 1.1 -- an excellent grade.
+- For a percentage-based scale, treat 90%+ as roughly German 1.0-1.5, 80-89% as roughly 1.5-2.0, 70-79% as roughly 2.0-2.5, 60-69% as roughly 2.5-3.0, and below 60% as 3.0 or worse -- adjust for context (country-specific grading norms vary).
+- Sanity-check your converted grade: a WEAK original grade (bottom of its scale) must convert to a WORSE (higher) German number, and a STRONG original grade (top of its scale) must convert to a BETTER (lower) German number. If your conversion doesn't follow this direction, redo it.
+Then compare the converted grade against the program's threshold and briefly note your reasoning and the converted value.
 
 Standardized tests: a program's GRE/GMAT requirement may be conditional (see eligibility_condition, e.g. "only for non-EU/EEA applicants") or waived under a stated condition (see waiver, e.g. "waived if CGPA better than 1.3"). Apply these conditions using the student's nationality/grade where relevant.
 
