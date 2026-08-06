@@ -7,5 +7,7 @@ export function useProgramDetail(programId: number | null) {
     queryKey: ["program", programId],
     queryFn: () => getProgram(programId as number),
     enabled: programId !== null,
+    staleTime: Infinity,
+    retry: 1,
   });
 }
