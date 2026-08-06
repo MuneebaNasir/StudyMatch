@@ -1,4 +1,5 @@
 import asyncio
+import logging
 
 from qdrant_client.models import Filter, HasIdCondition
 from sqlalchemy import func, select
@@ -8,6 +9,8 @@ from ..db.models import Program
 from ..ingestion import embeddings as embeddings_module
 from ..ingestion.embeddings import embed_texts, get_qdrant_client, with_retry
 from .schemas import SearchFilters, SearchResult
+
+logger = logging.getLogger(__name__)
 
 
 def apply_filters(stmt, filters: SearchFilters | None):
@@ -111,23 +114,37 @@ async def hybrid_search(
     limit: int,
     offset: int = 0,
 ) -> tuple[list[SearchResult], int]:
-    if not has_active_filters(filters):
-        # Nothing narrows the catalog: let Qdrant search everything and only
-        # look up the handful of rows it returns.
-        total = (
-            await session.execute(select(func.count()).select_from(Program))
-        ).scalar_one()
-        if total == 0:
-            return [], 0
-        ranked = await semantic_rank(None, semantic_query, limit, offset)
-    else:
-        candidate_ids = list(
-            (await session.execute(apply_filters(select(Program.id), filters))).scalars().all()
+    """Semantic + filtered search. Falls back to `filtered_search`'s DB-only
+    results if embedding or Qdrant ranking fails for any reason (expired/
+    invalid provider key, network error, Qdrant outage) -- the same Layer 2
+    degrade-rather-than-500 philosophy query_understanding already applies to
+    its own LLM calls. The catalog itself is fine even when semantic ranking
+    isn't, so a broken embedding provider should never turn a request into a
+    500."""
+    try:
+        if not has_active_filters(filters):
+            # Nothing narrows the catalog: let Qdrant search everything and
+            # only look up the handful of rows it returns.
+            total = (
+                await session.execute(select(func.count()).select_from(Program))
+            ).scalar_one()
+            if total == 0:
+                return [], 0
+            ranked = await semantic_rank(None, semantic_query, limit, offset)
+        else:
+            candidate_ids = list(
+                (await session.execute(apply_filters(select(Program.id), filters))).scalars().all()
+            )
+            total = len(candidate_ids)
+            if not candidate_ids:
+                return [], 0
+            ranked = await semantic_rank(candidate_ids, semantic_query, limit, offset)
+    except Exception:
+        logger.exception(
+            "Semantic ranking failed for query %r; falling back to filtered search",
+            semantic_query,
         )
-        total = len(candidate_ids)
-        if not candidate_ids:
-            return [], 0
-        ranked = await semantic_rank(candidate_ids, semantic_query, limit, offset)
+        return await filtered_search(session, filters, limit, offset)
 
     if not ranked:
         return [], total

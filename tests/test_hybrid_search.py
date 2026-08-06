@@ -92,3 +92,28 @@ def test_semantic_search_on_empty_catalog_returns_no_results(api_client, seeded_
     response = api_client.post("/search", json={"semantic_query": "machine learning"})
     assert response.status_code == 200
     assert response.json() == {"results": [], "total_matched": 0}
+
+
+@pytest.mark.seed_programs(TWO_PROGRAMS)
+def test_hybrid_search_falls_back_to_filtered_results_when_embedding_fails(
+    api_client, monkeypatch
+):
+    """A broken embedding provider (expired key, network error, ...) must
+    degrade to filtered-only results, not a 500 -- same Layer 2 philosophy
+    as query_understanding's parse/reasoning failures."""
+
+    def failing_embed(texts: list[str], input_type: str = "document") -> list[list[float]]:
+        raise RuntimeError("Provided API key is invalid.")
+
+    monkeypatch.setattr(search_module, "embed_texts", failing_embed)
+
+    response = api_client.post("/search", json={
+        "filters": {"subject": "Literature"},
+        "semantic_query": "machine learning and data analysis",
+        "limit": 20,
+    })
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_matched"] == 1
+    assert [r["id"] for r in body["results"]] == [2]
