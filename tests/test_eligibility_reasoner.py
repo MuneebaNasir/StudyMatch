@@ -47,6 +47,7 @@ def test_build_reasoning_prompt_includes_precomputed_conversion_for_recognized_s
         ),
     ]
     prompt = build_reasoning_prompt(profile, candidates)
+    assert "grade_value_on_german_scale" in prompt
     assert "3.0" in prompt
 
 
