@@ -1866,7 +1866,10 @@ export default function App() {
   }
 
   const hasSubmitted = querySearch.isPending || queryResponse !== null;
-  const selectedVerdict = selectedProgramId !== null ? verdictMap.get(selectedProgramId) ?? null : null;
+  const selectedVerdictInfo = selectedProgramId !== null ? verdictMap.get(selectedProgramId) : undefined;
+  const selectedVerdict = selectedVerdictInfo
+    ? { eligibility_verdict: selectedVerdictInfo.verdict, eligibility_reasoning: selectedVerdictInfo.reasoning }
+    : null;
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
