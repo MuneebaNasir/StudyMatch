@@ -44,12 +44,16 @@ export default function App() {
   }
 
   function handleFiltersChange(filters: SearchFilters) {
+    const previousFilters = activeFilters;
+    setActiveFilters(filters);
     filteredSearch.mutate(
       { filters, semanticQuery: queryResponse?.semantic_query ?? null },
       {
         onSuccess: (response) => {
-          setActiveFilters(filters);
           setDisplayedResults(mergeVerdicts(response.results, verdictMap));
+        },
+        onError: () => {
+          setActiveFilters(previousFilters);
         },
       },
     );
@@ -77,7 +81,7 @@ export default function App() {
       <ChatQueryBox onSubmit={handleSubmit} isPending={querySearch.isPending} />
 
       {querySearch.isError && (
-        <ErrorBanner onRetry={() => querySearch.variables !== undefined && querySearch.mutate(querySearch.variables)} />
+        <ErrorBanner onRetry={() => querySearch.variables !== undefined && handleSubmit(querySearch.variables)} />
       )}
 
       {hasSubmitted && (
@@ -101,7 +105,9 @@ export default function App() {
 
           {filteredSearch.isError && (
             <ErrorBanner
-              onRetry={() => filteredSearch.variables !== undefined && filteredSearch.mutate(filteredSearch.variables)}
+              onRetry={() =>
+                filteredSearch.variables !== undefined && handleFiltersChange(filteredSearch.variables.filters)
+              }
             />
           )}
 

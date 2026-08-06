@@ -42,8 +42,9 @@ describe("App", () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/query`, () => HttpResponse.json(QUERY_RESPONSE)),
       http.post(`${API_BASE_URL}/search`, async ({ request }) => {
-        const body = (await request.json()) as { filters: Record<string, unknown> };
+        const body = (await request.json()) as { filters: Record<string, unknown>; semantic_query: string | null };
         expect(body.filters.languages).toBeNull();
+        expect(body.semantic_query).toBe("robotics");
         return HttpResponse.json({
           results: [{
             id: 1, course_name: "Robotics Engineering MSc", university: "TU Berlin", city: "Berlin",
@@ -84,6 +85,32 @@ describe("App", () => {
     expect(
       within(screen.getByText("Eligibility").parentElement as HTMLElement).getByText(/meets the grade threshold/i),
     ).toBeInTheDocument();
+  });
+
+  it("retry after a failed query re-fires the request and renders results on success", async () => {
+    let callCount = 0;
+    mswServer.use(
+      http.post(`${API_BASE_URL}/query`, () => {
+        callCount += 1;
+        if (callCount === 1) {
+          return HttpResponse.json(null, { status: 500 });
+        }
+        return HttpResponse.json(QUERY_RESPONSE);
+      }),
+    );
+
+    renderApp();
+
+    await userEvent.type(screen.getByPlaceholderText(/describe your background/i), "robotics masters");
+    await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
+
+    expect(await screen.findByText(/something went wrong/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /retry/i }));
+
+    expect(await screen.findByText("Robotics Engineering MSc")).toBeInTheDocument();
+    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+    expect(callCount).toBe(2);
   });
 
   it("start over resets the query, chips, results, and closes the drawer", async () => {
