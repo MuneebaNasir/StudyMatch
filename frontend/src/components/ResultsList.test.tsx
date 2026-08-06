@@ -7,7 +7,8 @@ import { ResultsList } from "./ResultsList";
 
 const RESULT: QueryResult = {
   id: 1, course_name: "Robotics MSc", university: "TU X", city: "Berlin", languages: ["English"],
-  subject: null, tuition_fees_text: null, application_deadline_text: null, link: "https://example.com",
+  subject: null, tuition_fees_text: "No tuition fees", application_deadline_text: "15 July",
+  link: "https://example.com",
   score: null, eligibility_verdict: "eligible", eligibility_reasoning: "Meets the grade threshold.",
 };
 
@@ -28,6 +29,7 @@ describe("ResultsList", () => {
 
     expect(screen.getByText("Robotics MSc")).toBeInTheDocument();
     expect(screen.getByText("Eligible")).toBeInTheDocument();
+    expect(screen.getByText("English · No tuition fees · 15 July")).toBeInTheDocument();
 
     await userEvent.click(screen.getByText("Robotics MSc"));
     expect(onSelectProgram).toHaveBeenCalledWith(1);

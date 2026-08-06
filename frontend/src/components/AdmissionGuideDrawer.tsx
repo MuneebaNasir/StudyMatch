@@ -1,6 +1,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
+import { VERDICT_LABELS, VERDICT_STYLES } from "../lib/verdictDisplay";
 import type { ProgramDetail, QueryResult } from "../types";
 
 interface AdmissionGuideDrawerProps {
@@ -26,6 +27,9 @@ export function AdmissionGuideDrawer({
               <X size={18} />
             </Dialog.Close>
           </div>
+          <Dialog.Description className="sr-only">
+            Eligibility and admission requirements for this program.
+          </Dialog.Description>
 
           {isError && <p className="text-sm text-red-600">Couldn't load this program's details.</p>}
           {isLoading && <p className="text-sm text-slate-500">Loading...</p>}
@@ -35,7 +39,12 @@ export function AdmissionGuideDrawer({
               {verdict && (
                 <div>
                   <h3 className="text-sm font-medium text-slate-900">Eligibility</h3>
-                  <p className="text-sm text-slate-600">{verdict.eligibility_reasoning ?? "No reasoning available."}</p>
+                  <span
+                    className={`mt-1 inline-flex rounded-full px-2 py-1 text-xs font-medium ${VERDICT_STYLES[verdict.eligibility_verdict]}`}
+                  >
+                    {VERDICT_LABELS[verdict.eligibility_verdict]}
+                  </span>
+                  <p className="mt-1 text-sm text-slate-600">{verdict.eligibility_reasoning ?? "No reasoning available."}</p>
                 </div>
               )}
 
@@ -65,10 +74,10 @@ function StructuredAdmissionGuide({
           quote={eligibility.grade_requirement.source_quote}
         />
       )}
-      {eligibility.language_requirements.map((req, index) => (
+      {(eligibility.language_requirements ?? []).map((req, index) => (
         <RequirementRow key={`${req.language}-${index}`} label={`${req.language}: ${req.level}`} quote={req.source_quote} />
       ))}
-      {eligibility.standardized_tests.map((test, index) => (
+      {(eligibility.standardized_tests ?? []).map((test, index) => (
         <RequirementRow
           key={`${test.test}-${index}`}
           label={`${test.test}: ${test.required ? "required" : "not required"}${test.eligibility_condition ? ` (${test.eligibility_condition})` : ""}`}

@@ -1,27 +1,21 @@
+import { VERDICT_LABELS, VERDICT_STYLES } from "../lib/verdictDisplay";
 import type { QueryResult } from "../types";
-
-const VERDICT_STYLES: Record<QueryResult["eligibility_verdict"], string> = {
-  eligible: "bg-green-100 text-green-800",
-  likely_eligible: "bg-lime-100 text-lime-800",
-  not_eligible: "bg-red-100 text-red-800",
-  unclear: "bg-amber-100 text-amber-800",
-  no_data: "bg-slate-100 text-slate-600",
-};
-
-const VERDICT_LABELS: Record<QueryResult["eligibility_verdict"], string> = {
-  eligible: "Eligible",
-  likely_eligible: "Likely eligible",
-  not_eligible: "Not eligible",
-  unclear: "Unclear",
-  no_data: "Not evaluated",
-};
 
 interface ResultCardProps {
   result: QueryResult;
   onClick: (id: number) => void;
 }
 
+function buildMetaLine(result: QueryResult): string {
+  const parts: string[] = [];
+  if (result.languages.length > 0) parts.push(result.languages.join(", "));
+  if (result.tuition_fees_text) parts.push(result.tuition_fees_text);
+  if (result.application_deadline_text) parts.push(result.application_deadline_text);
+  return parts.join(" · ");
+}
+
 export function ResultCard({ result, onClick }: ResultCardProps) {
+  const metaLine = buildMetaLine(result);
   return (
     <button
       type="button"
@@ -39,6 +33,7 @@ export function ResultCard({ result, onClick }: ResultCardProps) {
           {VERDICT_LABELS[result.eligibility_verdict]}
         </span>
       </div>
+      {metaLine && <p className="mt-1 text-xs text-slate-400">{metaLine}</p>}
       {result.eligibility_reasoning && (
         <p className="mt-2 line-clamp-2 text-sm text-slate-600">{result.eligibility_reasoning}</p>
       )}

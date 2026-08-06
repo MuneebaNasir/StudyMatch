@@ -42,6 +42,21 @@ describe("AdmissionGuideDrawer", () => {
     expect(screen.getByText(/a bachelor's degree with a grade of 2.5 or better/i)).toBeInTheDocument();
   });
 
+  it("renders the verdict badge and label when a verdict is provided", () => {
+    render(
+      <AdmissionGuideDrawer
+        programId={10396}
+        verdict={{ eligibility_verdict: "eligible", eligibility_reasoning: "Meets the grade threshold." }}
+        isLoading={false}
+        isError={false}
+        onClose={vi.fn()}
+        program={BASE_PROGRAM}
+      />,
+    );
+    expect(screen.getByText("Eligible")).toBeInTheDocument();
+    expect(screen.getByText(/meets the grade threshold/i)).toBeInTheDocument();
+  });
+
   it("renders structured requirements with their source quotes when present", () => {
     render(
       <AdmissionGuideDrawer
