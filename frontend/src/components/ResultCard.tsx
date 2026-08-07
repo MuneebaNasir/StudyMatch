@@ -20,12 +20,12 @@ export function ResultCard({ result, onClick }: ResultCardProps) {
     <button
       type="button"
       onClick={() => onClick(result.id)}
-      className="w-full rounded-xl border border-slate-200 bg-white p-4 text-left shadow-sm hover:border-slate-400"
+      className="w-full rounded-2xl border border-line bg-background p-4 text-left shadow-sm hover:border-accent"
     >
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h3 className="font-medium text-slate-900">{result.course_name}</h3>
-          <p className="text-sm text-slate-500">
+          <h3 className="font-medium text-ink">{result.course_name}</h3>
+          <p className="text-sm text-ink/60">
             {result.university}{result.city ? ` — ${result.city}` : ""}
           </p>
         </div>
@@ -33,9 +33,9 @@ export function ResultCard({ result, onClick }: ResultCardProps) {
           {VERDICT_LABELS[result.eligibility_verdict]}
         </span>
       </div>
-      {metaLine && <p className="mt-1 text-xs text-slate-400">{metaLine}</p>}
+      {metaLine && <p className="mt-1 text-xs text-ink/40">{metaLine}</p>}
       {result.eligibility_reasoning && (
-        <p className="mt-2 line-clamp-2 text-sm text-slate-600">{result.eligibility_reasoning}</p>
+        <p className="mt-2 line-clamp-2 text-sm text-ink/70">{result.eligibility_reasoning}</p>
       )}
     </button>
   );
