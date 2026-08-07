@@ -1,11 +1,5 @@
-from langchain_groq import ChatGroq
-
-from ..config import settings
+from ..query_understanding.llm import get_fallback_llm
 from .schema import EligibilityExtraction
-
-EXTRACTION_MODEL = "llama-3.3-70b-versatile"
-
-_llm: ChatGroq | None = None
 
 PROMPT_TEMPLATE = """You are extracting structured eligibility criteria for a German university master's program, from DAAD's own program description text. Extract ONLY what is stated or clearly implied in the text below -- do not invent requirements. If something is not mentioned, leave it null/empty rather than guessing.
 
@@ -40,22 +34,6 @@ def build_prompt(course_name: str, university: str, raw_sections: dict) -> str:
     )
 
 
-def get_extraction_llm() -> ChatGroq:
-    """Process-wide Groq client (constructing one per call leaks connections)."""
-    global _llm
-    # An empty key 401s on every request — not retryable — which looks exactly
-    # like quota exhaustion to the consecutive-failure circuit breaker. Name the
-    # real cause on the first program instead of after 5 opaque failures.
-    if not settings.groq_api_key:
-        raise RuntimeError("GROQ_API_KEY is not set (see .env.example)")
-    if _llm is None:
-        _llm = ChatGroq(
-            model=EXTRACTION_MODEL, api_key=settings.groq_api_key, temperature=0, max_retries=3
-        )
-    return _llm
-
-
 def extract_eligibility(course_name: str, university: str, raw_sections: dict) -> EligibilityExtraction:
     prompt = build_prompt(course_name, university, raw_sections)
-    structured_llm = get_extraction_llm().with_structured_output(EligibilityExtraction)
-    return structured_llm.invoke(prompt)
+    return get_fallback_llm(EligibilityExtraction).invoke(prompt)

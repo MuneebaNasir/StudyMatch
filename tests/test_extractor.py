@@ -1,7 +1,8 @@
 import pytest
 
 from daad_search.extraction import extractor as extractor_module
-from daad_search.extraction.extractor import build_prompt, extract_eligibility, get_extraction_llm
+from daad_search.extraction.extractor import build_prompt, extract_eligibility
+from daad_search.extraction.schema import EligibilityExtraction
 
 
 def test_build_prompt_includes_course_and_university():
@@ -27,13 +28,30 @@ def test_build_prompt_includes_provided_raw_sections():
     assert "B2 required" in prompt
 
 
-def test_get_extraction_llm_rejects_missing_api_key(monkeypatch):
-    """An unset key 401s on every call, which the circuit breaker would
-    otherwise misreport as quota exhaustion — a diagnosis no re-run can fix."""
-    monkeypatch.setattr(extractor_module.settings, "groq_api_key", "")
+def test_extract_eligibility_uses_the_shared_provider_fallback_chain(monkeypatch):
+    """Groq's free tier is 100k tokens/day -- far too little to extract the
+    full catalog in reasonable time. Extraction must go through the same
+    Groq->Mistral->Gemini chain query understanding already uses (llm.py),
+    not a Groq-only client, so it can lean on Mistral's much larger budget."""
+    captured = {}
+    stub_result = EligibilityExtraction(extraction_confidence="high")
 
-    with pytest.raises(RuntimeError, match="GROQ_API_KEY"):
-        get_extraction_llm()
+    class FakeChain:
+        def invoke(self, prompt):
+            captured["prompt"] = prompt
+            return stub_result
+
+    def fake_get_fallback_llm(schema):
+        captured["schema"] = schema
+        return FakeChain()
+
+    monkeypatch.setattr(extractor_module, "get_fallback_llm", fake_get_fallback_llm)
+
+    result = extract_eligibility("Additive Manufacturing", "Paderborn University", {})
+
+    assert captured["schema"] is EligibilityExtraction
+    assert "Additive Manufacturing" in captured["prompt"]
+    assert result is stub_result
 
 
 @pytest.mark.integration
