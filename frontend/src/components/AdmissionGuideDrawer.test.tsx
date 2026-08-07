@@ -90,6 +90,26 @@ describe("AdmissionGuideDrawer", () => {
     expect(screen.queryByText(/german: null/i)).not.toBeInTheDocument();
   });
 
+  it("shows the original raw program details alongside the structured summary, not instead of it", () => {
+    render(
+      <AdmissionGuideDrawer
+        programId={10396} verdict={null} isLoading={false} isError={false} onClose={vi.fn()}
+        program={{
+          ...BASE_PROGRAM,
+          raw_sections: { admission_requirements: "A bachelor's degree with a grade of 2.5 or better." },
+          structured_eligibility: {
+            requires_gre: null, requires_gmat: null, min_german_level: null, min_english_level: "B2",
+            extraction_confidence: "high", degree_prerequisite: null,
+            grade_requirement: { value: 2.5, scale: "German grading scale", source_quote: "A grade of 2.5 or better is required." },
+            standardized_tests: [], language_requirements: [], notes: null,
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText(/grade requirement: 2.5/i)).toBeInTheDocument();
+    expect(screen.getByText(/a bachelor's degree with a grade of 2.5 or better/i)).toBeInTheDocument();
+  });
+
   it("renders structured requirements with their source quotes when present", () => {
     render(
       <AdmissionGuideDrawer

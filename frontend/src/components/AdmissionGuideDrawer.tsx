@@ -57,11 +57,16 @@ export function AdmissionGuideDrawer({
                 </div>
               )}
 
-              {program.structured_eligibility ? (
+              {program.structured_eligibility && (
                 <StructuredAdmissionGuide eligibility={program.structured_eligibility} />
-              ) : (
-                <RawAdmissionText rawSections={program.raw_sections} />
               )}
+
+              <div>
+                <h3 className="text-sm font-medium text-slate-900">Original program details</h3>
+                <div className="mt-1">
+                  <RawAdmissionText rawSections={program.raw_sections} />
+                </div>
+              </div>
             </div>
           )}
         </Dialog.Content>
