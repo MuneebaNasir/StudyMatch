@@ -8,7 +8,7 @@ This spec covers a visual and copy pass only: a name, a color identity, and smal
 
 ## Goal
 
-Give the app a real identity — a name, a warm and credible color palette, a header that sets the tone as a "student counselor" rather than a bare search tool — and fix one concrete UX gap (the query box's placeholder doesn't show users what a good query looks like). Everything else about how the app behaves stays exactly as it is today.
+Give the app a real identity — a name, a warm and credible color palette, a header that sets the tone as a "student counselor" rather than a bare search tool. Everything else about how the app behaves, including the existing query box placeholder, stays exactly as it is today.
 
 ## Scope
 
@@ -17,7 +17,6 @@ Give the app a real identity — a name, a warm and credible color palette, a he
 - Tagline under the name: "Your international student counselor for study programmes in Germany"
 - A warm, approachable color palette (warm off-white background, warm charcoal text, terracotta accent) applied via Tailwind theme tokens, replacing ad hoc slate/green/red/amber Tailwind defaults where they're used purely for visual styling
 - A real header component (name + tagline), replacing the current bare `<h1>`
-- `ChatQueryBox` placeholder changed from a generic instruction to a concrete example query
 - Visual polish pass on existing components (chips, cards, drawer, buttons): rounder corners, softer shadows, warm-gray borders instead of cool slate — no layout/structural change
 - One new dependency: a single web font (Inter, via Google Fonts) applied globally, replacing the browser default sans stack
 
@@ -32,9 +31,7 @@ Give the app a real identity — a name, a warm and credible color palette, a he
 
 - Page `<title>` and header: **"Study in Germany"**
 - Tagline, rendered under the name in the header: **"Your international student counselor for study programmes in Germany"**
-- `ChatQueryBox` placeholder becomes a concrete example instead of an instruction, e.g.:
-  *"I have a Bachelor's in Computer Science, 3.2 GPA, looking for English-taught AI master's programs with no tuition fees..."*
-  The textarea keeps an explicit `aria-label="Describe your background and what you're looking for"` so it has a stable, meaningful accessible name independent of the example text shown as placeholder (see Testing — this also decouples tests from copy).
+- `ChatQueryBox` placeholder stays as it is today: "Describe your background and what you're looking for..."
 
 ## Color System
 
@@ -69,11 +66,9 @@ Applied via the new color tokens and small Tailwind class changes only — every
 
 ## Testing
 
-This is a styling/copy pass, so most existing tests are unaffected (they assert behavior and text content, not CSS classes). Two things need updating:
-1. All `getByPlaceholderText(/describe your background/i)` call sites (`App.test.tsx` ×4, `ChatQueryBox.test.tsx` ×2) break once the placeholder becomes example text instead of an instruction. Switch these to `getByRole("textbox", { name: /describe your background/i })`, targeting the new `aria-label` instead of the placeholder — more robust regardless of this specific change, since visible copy shouldn't be a test hook.
-2. Any test asserting the literal text "DAAD Program Search" (currently none found, but re-check `App.test.tsx` during implementation) updates to "Study in Germany".
+This is a styling/copy pass, so almost all existing tests are unaffected (they assert behavior and text content, not CSS classes, and the query box placeholder isn't changing). The one thing to check during implementation: any test asserting the literal text "DAAD Program Search" (currently none found in `App.test.tsx`, but re-check) updates to "Study in Germany".
 
-No new test *behavior* to cover — this isn't new functionality, so no new test cases beyond fixing the selector coupling above.
+No new test *behavior* to cover — this isn't new functionality, so no new test cases needed.
 
 ## Tech Stack
 
