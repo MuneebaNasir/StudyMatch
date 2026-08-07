@@ -5,6 +5,19 @@ interface FilterChip {
   label: string;
 }
 
+// Mirrors the DAAD course type codes documented in
+// src/daad_search/query_understanding/parser.py's extraction prompt.
+const COURSE_TYPE_LABELS: Record<number, string> = {
+  1: "Bachelor's",
+  2: "Master's",
+  3: "PhD",
+  4: "Graduate school",
+  5: "Language course",
+  6: "Short course",
+  7: "Preparatory course",
+  9: "Various",
+};
+
 function buildFilterChips(filters: SearchFilters): FilterChip[] {
   const chips: FilterChip[] = [];
   if (filters.languages && filters.languages.length > 0) {
@@ -20,7 +33,8 @@ function buildFilterChips(filters: SearchFilters): FilterChip[] {
     chips.push({ key: "city", label: `City: ${filters.city}` });
   }
   if (filters.course_type != null) {
-    chips.push({ key: "course_type", label: `Course type: ${filters.course_type}` });
+    const label = COURSE_TYPE_LABELS[filters.course_type] ?? `Unknown (${filters.course_type})`;
+    chips.push({ key: "course_type", label: `Course type: ${label}` });
   }
   return chips;
 }

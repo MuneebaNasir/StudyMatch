@@ -18,6 +18,19 @@ describe("ExtractionSummary", () => {
     expect(screen.getByText("Tuition-free only")).toBeInTheDocument();
   });
 
+  it("renders a human-readable label for course type instead of the raw code", () => {
+    render(
+      <ExtractionSummary
+        filters={{ languages: null, max_tuition_free_only: null, subject: null, city: null, course_type: 2 }}
+        profile={null}
+        onFiltersChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Course type: Master's")).toBeInTheDocument();
+    expect(screen.queryByText("Course type: 2")).not.toBeInTheDocument();
+  });
+
   it("removing a filter chip calls onFiltersChange with that field nulled out", async () => {
     const onFiltersChange = vi.fn();
     render(
