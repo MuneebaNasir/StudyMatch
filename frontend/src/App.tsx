@@ -2,8 +2,8 @@ import { useState } from "react";
 
 import { AdmissionGuideDrawer } from "./components/AdmissionGuideDrawer";
 import { ChatQueryBox } from "./components/ChatQueryBox";
-import { Header } from "./components/Header";
 import { ExtractionSummary } from "./components/ExtractionSummary";
+import { Header } from "./components/Header";
 import { Pagination } from "./components/Pagination";
 import { ResultsList } from "./components/ResultsList";
 import { useFilteredSearch } from "./hooks/useFilteredSearch";
