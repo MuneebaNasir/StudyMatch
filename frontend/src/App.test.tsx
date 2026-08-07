@@ -87,6 +87,47 @@ describe("App", () => {
     ).toBeInTheDocument();
   });
 
+  it("pages through results when there are more than fit on one page", async () => {
+    function makeResults(count: number, offset: number) {
+      return Array.from({ length: count }, (_, i) => ({
+        id: offset + i + 1, course_name: `Course ${offset + i + 1}`, university: "TU X", city: null,
+        languages: ["English"], subject: null, tuition_fees_text: null, application_deadline_text: null,
+        link: "https://example.com", score: null, eligibility_verdict: "no_data" as const, eligibility_reasoning: null,
+      }));
+    }
+
+    let lastOffset = -1;
+    mswServer.use(
+      http.post(`${API_BASE_URL}/query`, async ({ request }) => {
+        const body = (await request.json()) as { offset: number };
+        lastOffset = body.offset;
+        return HttpResponse.json({
+          results: makeResults(20, body.offset),
+          total_matched: 45,
+          extracted_filters: null,
+          extracted_profile: null,
+          semantic_query: null,
+        });
+      }),
+    );
+
+    renderApp();
+
+    await userEvent.type(screen.getByPlaceholderText(/describe your background/i), "robotics masters");
+    await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
+
+    expect(await screen.findByText("Showing 1-20 of 45")).toBeInTheDocument();
+    expect(screen.getByText("Course 1")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /previous/i })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+
+    await waitFor(() => expect(lastOffset).toBe(20));
+    expect(await screen.findByText("Showing 21-40 of 45")).toBeInTheDocument();
+    expect(screen.getByText("Course 21")).toBeInTheDocument();
+    expect(screen.queryByText("Course 1")).not.toBeInTheDocument();
+  });
+
   it("retry after a failed query re-fires the request and renders results on success", async () => {
     let callCount = 0;
     mswServer.use(

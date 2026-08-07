@@ -13,19 +13,19 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function postQuery(query: string, limit = 20): Promise<QueryResponse> {
+export function postQuery(query: string, offset = 0, limit = 20): Promise<QueryResponse> {
   return request<QueryResponse>("/query", {
     method: "POST",
-    body: JSON.stringify({ query, limit }),
+    body: JSON.stringify({ query, offset, limit }),
   });
 }
 
 export function postSearch(
-  filters: SearchFilters, semanticQuery: string | null, limit = 20,
+  filters: SearchFilters, semanticQuery: string | null, offset = 0, limit = 20,
 ): Promise<SearchResponse> {
   return request<SearchResponse>("/search", {
     method: "POST",
-    body: JSON.stringify({ filters, semantic_query: semanticQuery, limit }),
+    body: JSON.stringify({ filters, semantic_query: semanticQuery, offset, limit }),
   });
 }
 

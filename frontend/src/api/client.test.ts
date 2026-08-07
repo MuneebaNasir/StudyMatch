@@ -7,11 +7,11 @@ import { getProgram, postQuery, postSearch } from "./client";
 const API_BASE_URL = "http://localhost:8000";
 
 describe("api client", () => {
-  it("postQuery sends the query and limit, and returns the parsed response", async () => {
+  it("postQuery sends the query, offset, and limit, and returns the parsed response", async () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/query`, async ({ request }) => {
         const body = await request.json();
-        expect(body).toEqual({ query: "robotics masters", limit: 20 });
+        expect(body).toEqual({ query: "robotics masters", offset: 0, limit: 20 });
         return HttpResponse.json({
           results: [], total_matched: 0, extracted_filters: null, extracted_profile: null, semantic_query: null,
         });
@@ -22,12 +22,26 @@ describe("api client", () => {
     expect(result.total_matched).toBe(0);
   });
 
-  it("postSearch sends filters and semantic_query, and returns the parsed response", async () => {
+  it("postQuery sends a non-zero offset when paginating", async () => {
+    mswServer.use(
+      http.post(`${API_BASE_URL}/query`, async ({ request }) => {
+        const body = await request.json();
+        expect(body).toEqual({ query: "robotics masters", offset: 20, limit: 20 });
+        return HttpResponse.json({
+          results: [], total_matched: 0, extracted_filters: null, extracted_profile: null, semantic_query: null,
+        });
+      }),
+    );
+
+    await postQuery("robotics masters", 20);
+  });
+
+  it("postSearch sends filters, semantic_query, and offset, and returns the parsed response", async () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/search`, async ({ request }) => {
         const body = await request.json();
         expect(body).toEqual({
-          filters: { languages: ["English"] }, semantic_query: "robotics", limit: 20,
+          filters: { languages: ["English"] }, semantic_query: "robotics", offset: 0, limit: 20,
         });
         return HttpResponse.json({ results: [], total_matched: 0 });
       }),
@@ -35,6 +49,20 @@ describe("api client", () => {
 
     const result = await postSearch({ languages: ["English"] }, "robotics");
     expect(result.total_matched).toBe(0);
+  });
+
+  it("postSearch sends a non-zero offset when paginating", async () => {
+    mswServer.use(
+      http.post(`${API_BASE_URL}/search`, async ({ request }) => {
+        const body = await request.json();
+        expect(body).toEqual({
+          filters: { languages: ["English"] }, semantic_query: "robotics", offset: 20, limit: 20,
+        });
+        return HttpResponse.json({ results: [], total_matched: 0 });
+      }),
+    );
+
+    await postSearch({ languages: ["English"] }, "robotics", 20);
   });
 
   it("getProgram fetches a program by id", async () => {

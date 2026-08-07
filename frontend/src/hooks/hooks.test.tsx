@@ -29,8 +29,23 @@ describe("useQuerySearch", () => {
     );
     const { result } = renderHook(() => useQuerySearch(), { wrapper });
 
-    const response = await result.current.mutateAsync("robotics masters");
+    const response = await result.current.mutateAsync({ query: "robotics masters", offset: 0 });
     expect(response.total_matched).toBe(3);
+  });
+
+  it("posts the given offset for pagination", async () => {
+    mswServer.use(
+      http.post(`${API_BASE_URL}/query`, async ({ request }) => {
+        const body = (await request.json()) as { offset: number };
+        expect(body.offset).toBe(20);
+        return HttpResponse.json({
+          results: [], total_matched: 45, extracted_filters: null, extracted_profile: null, semantic_query: null,
+        });
+      }),
+    );
+    const { result } = renderHook(() => useQuerySearch(), { wrapper });
+
+    await result.current.mutateAsync({ query: "robotics masters", offset: 20 });
   });
 });
 
@@ -42,9 +57,22 @@ describe("useFilteredSearch", () => {
     const { result } = renderHook(() => useFilteredSearch(), { wrapper });
 
     const response = await result.current.mutateAsync({
-      filters: { languages: ["English"] }, semanticQuery: null,
+      filters: { languages: ["English"] }, semanticQuery: null, offset: 0,
     });
     expect(response.total_matched).toBe(1);
+  });
+
+  it("posts the given offset for pagination", async () => {
+    mswServer.use(
+      http.post(`${API_BASE_URL}/search`, async ({ request }) => {
+        const body = (await request.json()) as { offset: number };
+        expect(body.offset).toBe(20);
+        return HttpResponse.json({ results: [], total_matched: 45 });
+      }),
+    );
+    const { result } = renderHook(() => useFilteredSearch(), { wrapper });
+
+    await result.current.mutateAsync({ filters: { languages: ["English"] }, semanticQuery: null, offset: 20 });
   });
 });
 

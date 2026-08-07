@@ -5,7 +5,8 @@ import type { SearchFilters } from "../types";
 
 export function useFilteredSearch() {
   return useMutation({
-    mutationFn: ({ filters, semanticQuery }: { filters: SearchFilters; semanticQuery: string | null }) =>
-      postSearch(filters, semanticQuery),
+    mutationFn: (
+      { filters, semanticQuery, offset }: { filters: SearchFilters; semanticQuery: string | null; offset: number },
+    ) => postSearch(filters, semanticQuery, offset),
   });
 }
