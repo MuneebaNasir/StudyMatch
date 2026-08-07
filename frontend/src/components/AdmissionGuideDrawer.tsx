@@ -20,10 +20,10 @@ export function AdmissionGuideDrawer({
     <Dialog.Root open={programId !== null} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 bg-black/30" />
-        <Dialog.Content className="fixed right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl">
+        <Dialog.Content className="fixed right-0 top-0 h-full w-full max-w-md overflow-y-auto bg-background p-6 shadow-xl">
           <div className="mb-4 flex items-center justify-between">
             <Dialog.Title className="text-lg font-semibold">Admission guide</Dialog.Title>
-            <Dialog.Close aria-label="Close" className="text-slate-400 hover:text-slate-700">
+            <Dialog.Close aria-label="Close" className="text-ink/40 hover:text-ink">
               <X size={18} />
             </Dialog.Close>
           </div>
@@ -32,7 +32,7 @@ export function AdmissionGuideDrawer({
           </Dialog.Description>
 
           {isError && <p className="text-sm text-red-600">Couldn't load this program's details.</p>}
-          {isLoading && <p className="text-sm text-slate-500">Loading...</p>}
+          {isLoading && <p className="text-sm text-ink/60">Loading...</p>}
 
           {!isLoading && !isError && program && (
             <div className="space-y-4">
@@ -40,20 +40,20 @@ export function AdmissionGuideDrawer({
                 href={program.link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-sm font-medium text-blue-600 hover:underline"
+                className="text-sm font-medium text-accent hover:underline"
               >
                 View program page ↗
               </a>
 
               {verdict && (
                 <div>
-                  <h3 className="text-sm font-medium text-slate-900">Eligibility</h3>
+                  <h3 className="text-sm font-medium text-ink">Eligibility</h3>
                   <span
                     className={`mt-1 inline-flex rounded-full px-2 py-1 text-xs font-medium ${VERDICT_STYLES[verdict.eligibility_verdict]}`}
                   >
                     {VERDICT_LABELS[verdict.eligibility_verdict]}
                   </span>
-                  <p className="mt-1 text-sm text-slate-600">{verdict.eligibility_reasoning ?? "No reasoning available."}</p>
+                  <p className="mt-1 text-sm text-ink/70">{verdict.eligibility_reasoning ?? "No reasoning available."}</p>
                 </div>
               )}
 
@@ -62,7 +62,7 @@ export function AdmissionGuideDrawer({
               )}
 
               <div>
-                <h3 className="text-sm font-medium text-slate-900">Original program details</h3>
+                <h3 className="text-sm font-medium text-ink">Original program details</h3>
                 <div className="mt-1">
                   <RawAdmissionText rawSections={program.raw_sections} />
                 </div>
@@ -111,9 +111,9 @@ function StructuredAdmissionGuide({
 
 function RequirementRow({ label, quote }: { label: string; quote: string | null }) {
   return (
-    <div className="rounded-lg border border-slate-100 p-3">
-      <p className="text-sm font-medium text-slate-900">{label}</p>
-      {quote && <p className="mt-1 text-xs italic text-slate-500">"{quote}"</p>}
+    <div className="rounded-lg border border-line p-3">
+      <p className="text-sm font-medium text-ink">{label}</p>
+      {quote && <p className="mt-1 text-xs italic text-ink/60">"{quote}"</p>}
     </div>
   );
 }
@@ -121,14 +121,14 @@ function RequirementRow({ label, quote }: { label: string; quote: string | null 
 function RawAdmissionText({ rawSections }: { rawSections: Record<string, string> }) {
   const sections = Object.entries(rawSections).filter(([, text]) => text);
   if (sections.length === 0) {
-    return <p className="text-sm text-slate-500">No admission text available for this program.</p>;
+    return <p className="text-sm text-ink/60">No admission text available for this program.</p>;
   }
   return (
     <div className="space-y-3">
       {sections.map(([key, text]) => (
         <div key={key}>
-          <h4 className="text-xs font-medium uppercase text-slate-400">{key.replace(/_/g, " ")}</h4>
-          <p className="text-sm text-slate-700">{text}</p>
+          <h4 className="text-xs font-medium uppercase text-ink/40">{key.replace(/_/g, " ")}</h4>
+          <p className="text-sm text-ink/80">{text}</p>
         </div>
       ))}
     </div>
