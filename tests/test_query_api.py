@@ -25,6 +25,25 @@ def _seed_eligibility(session_factory, program_id: int, structured_eligibility: 
 
 
 @pytest.mark.seed_programs([
+    {"id": 1, "course_name": "A Course", "link": "https://example.com/1"},
+    {"id": 2, "course_name": "B Course", "link": "https://example.com/2"},
+    {"id": 3, "course_name": "C Course", "link": "https://example.com/3"},
+])
+def test_query_offset_skips_earlier_pages(api_client, monkeypatch):
+    monkeypatch.setattr(
+        query_module, "parse_query",
+        lambda q: ParsedQuery(filters=SearchFilters(), semantic_query=None, student_profile=StudentProfile()),
+    )
+
+    response = api_client.post("/query", json={"query": "any course", "limit": 2, "offset": 1})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["total_matched"] == 3
+    assert [r["course_name"] for r in body["results"]] == ["B Course", "C Course"]
+
+
+@pytest.mark.seed_programs([
     {"id": 1, "course_name": "Robotics Engineering MSc", "subject": "Mechanical Engineering",
      "languages": ["English"], "has_tuition_fees": False, "link": "https://example.com/1"},
 ])

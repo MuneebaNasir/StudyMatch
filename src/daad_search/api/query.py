@@ -16,7 +16,7 @@ from .schemas import SearchFilters
 REASONING_CANDIDATE_CAP = 10
 
 
-async def handle_query(session: AsyncSession, query: str, limit: int) -> QueryResponse:
+async def handle_query(session: AsyncSession, query: str, limit: int, offset: int = 0) -> QueryResponse:
     parsed = parse_query(query)
 
     if parsed is not None:
@@ -31,9 +31,9 @@ async def handle_query(session: AsyncSession, query: str, limit: int) -> QueryRe
         profile = None
 
     if semantic_query:
-        results, total = await search_module.hybrid_search(session, filters, semantic_query, limit)
+        results, total = await search_module.hybrid_search(session, filters, semantic_query, limit, offset)
     else:
-        results, total = await search_module.filtered_search(session, filters, limit)
+        results, total = await search_module.filtered_search(session, filters, limit, offset)
 
     reasoning_pool = results[:REASONING_CANDIDATE_CAP]
     remainder = results[REASONING_CANDIDATE_CAP:]

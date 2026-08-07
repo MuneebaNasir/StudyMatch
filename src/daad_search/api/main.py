@@ -44,7 +44,7 @@ async def search(
 async def query(
     request: QueryRequest, session: AsyncSession = Depends(get_session)
 ) -> QueryResponse:
-    return await handle_query(session, request.query, request.limit)
+    return await handle_query(session, request.query, request.limit, request.offset)
 
 
 @app.get("/programs/{program_id}", response_model=ProgramDetail)
