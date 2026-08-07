@@ -36,6 +36,15 @@ export function AdmissionGuideDrawer({
 
           {!isLoading && !isError && program && (
             <div className="space-y-4">
+              <a
+                href={program.link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-sm font-medium text-blue-600 hover:underline"
+              >
+                View program page ↗
+              </a>
+
               {verdict && (
                 <div>
                   <h3 className="text-sm font-medium text-slate-900">Eligibility</h3>

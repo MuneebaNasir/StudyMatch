@@ -18,6 +18,17 @@ describe("AdmissionGuideDrawer", () => {
     expect(screen.queryByText("Admission guide")).not.toBeInTheDocument();
   });
 
+  it("renders a link to the program's DAAD page", () => {
+    render(
+      <AdmissionGuideDrawer
+        programId={10396} verdict={null} isLoading={false} isError={false} onClose={vi.fn()}
+        program={{ ...BASE_PROGRAM, link: "https://www2.daad.de/program/10396" }}
+      />,
+    );
+    const link = screen.getByRole("link", { name: /view program page/i });
+    expect(link).toHaveAttribute("href", "https://www2.daad.de/program/10396");
+  });
+
   it("shows the loading state", () => {
     render(
       <AdmissionGuideDrawer programId={10396} verdict={null} program={undefined} isLoading={true} isError={false} onClose={vi.fn()} />,
