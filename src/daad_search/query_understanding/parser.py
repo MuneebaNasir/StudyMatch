@@ -14,7 +14,7 @@ Extract THREE things from the query below:
    - languages: list of teaching languages requested, e.g. ["English"]
    - max_tuition_free_only: true if the student wants only tuition-free programs
    - subject: ONLY set this if the query names an exact, narrow academic subject that is likely to match a university subject label directly (e.g. "Mechanical Engineering"). If the subject is broad, colloquial, or might not match an exact label (e.g. "robotics", "AI", "data stuff"), leave subject null and put it in semantic_query instead -- it will be matched by meaning, not exact text.
-   - city: a specific city name if mentioned
+   - city: a specific city name if mentioned, e.g. "Berlin" or "Munich". Every program in this catalog is already in Germany, so "Germany"/"germany" is never a valid value here -- leave city null when the query only names the country, not a city.
    - course_type: the DAAD numeric course type code, ONLY if the query clearly implies one: 1=Bachelor's, 2=Master's, 3=PhD, 4=Graduate school, 5=Language course, 6=Short course, 7=Preparatory course, 9=Various. Most queries about "masters" should set this to 2.
 
 2. semantic_query -- the substantive topic/subject-matter part of the query that isn't captured as a hard filter above (e.g. "robotics", "machine learning and business analytics"). Leave null if there's no such topic beyond the filters.

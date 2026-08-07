@@ -39,3 +39,16 @@ def test_parse_query_extracts_filters_and_student_profile():
     assert result.student_profile.grade_value == 3.2
     assert result.student_profile.nationality is not None
     assert "pakistan" in result.student_profile.nationality.lower()
+
+
+@pytest.mark.integration
+def test_parse_query_does_not_treat_country_as_city():
+    # This is a Germany-only catalog, so "in germany" is not a city filter --
+    # every program already matches it. Only an actual city name (e.g. "Berlin")
+    # should populate filters.city.
+    result = parse_query(
+        "I am looking for Masters in AI, agentic AI, LLM, in germany with no "
+        "tution fee and taught only in english"
+    )
+    assert result is not None
+    assert result.filters.city is None
