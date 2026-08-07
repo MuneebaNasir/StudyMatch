@@ -62,11 +62,6 @@ def main() -> None:
             f"Extracted eligibility for {result['succeeded']}/{result['total_candidates']} "
             f"candidate programs. Failed IDs: {result['failed_ids']}"
         )
-        if result["stopped_early"]:
-            print(
-                "Stopped early after repeated consecutive failures (likely quota exhausted). "
-                "Re-run `extract` later to resume."
-            )
 
 
 if __name__ == "__main__":

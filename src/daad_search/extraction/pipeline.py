@@ -13,6 +13,15 @@ from .extractor import extract_eligibility
 logger = logging.getLogger(__name__)
 
 CONSECUTIVE_FAILURE_LIMIT = 5
+# Paces calls between candidates so free-tier per-minute limits (Mistral's
+# ~60 RPM in particular) aren't bursted -- extract_program calls otherwise
+# run back-to-back with nothing else throttling them.
+REQUEST_DELAY_SECONDS = 1.2
+# A streak of CONSECUTIVE_FAILURE_LIMIT failures in a row, across the whole
+# Groq->Mistral->Gemini fallback chain, is treated as a transient rate-limit
+# burst rather than a permanent problem: cool down long enough for a
+# per-minute window to clear, then keep going.
+COOLDOWN_SECONDS = 60
 
 
 async def select_candidates(
@@ -73,14 +82,13 @@ async def extract_program(program: Program) -> tuple[int, bool]:
     return program.id, True
 
 
-async def _process_candidates(candidates: list[Program]) -> dict:
-    """Extract eligibility for each candidate in order, stopping early after
-    CONSECUTIVE_FAILURE_LIMIT failures in a row (a strong signal of quota
-    exhaustion, not per-program bad luck)."""
+async def _process_candidates(candidates: list[Program], sleep=asyncio.sleep) -> dict:
+    """Extract eligibility for each candidate in order. A streak of
+    CONSECUTIVE_FAILURE_LIMIT failures in a row cools down instead of
+    stopping the run -- every candidate still gets attempted."""
     succeeded_ids: list[int] = []
     failed_ids: list[int] = []
     consecutive_failures = 0
-    stopped_early = False
 
     for program in candidates:
         program_id, ok = await extract_program(program)
@@ -91,22 +99,49 @@ async def _process_candidates(candidates: list[Program]) -> dict:
             failed_ids.append(program_id)
             consecutive_failures += 1
             if consecutive_failures >= CONSECUTIVE_FAILURE_LIMIT:
-                logger.error(
-                    "Stopping early after %d consecutive failures (likely quota exhausted)",
-                    consecutive_failures,
+                logger.warning(
+                    "%d consecutive failures (likely a rate-limit burst across "
+                    "the fallback chain) -- cooling down %ds before continuing",
+                    consecutive_failures, COOLDOWN_SECONDS,
                 )
-                stopped_early = True
-                break
+                await sleep(COOLDOWN_SECONDS)
+                consecutive_failures = 0
+        await sleep(REQUEST_DELAY_SECONDS)
 
     return {
         "total_candidates": len(candidates),
         "succeeded": len(succeeded_ids),
         "failed_ids": failed_ids,
-        "stopped_early": stopped_early,
     }
 
 
-async def run_extraction(limit_ids: list[int] | None = None, limit: int | None = None) -> dict:
-    async with async_session_factory() as session:
-        candidates = await select_candidates(session, limit_ids=limit_ids, limit=limit)
-    return await _process_candidates(candidates)
+async def run_extraction(
+    limit_ids: list[int] | None = None, limit: int | None = None, sleep=asyncio.sleep
+) -> dict:
+    """A bare call (no limit_ids/limit) keeps re-selecting and processing
+    until no candidates remain, so programs that failed during a rate-limit
+    burst get retried automatically -- no manual re-run needed. A targeted
+    (--ids) or capped (--limit) run processes exactly its selection once."""
+    total_candidates = 0
+    total_succeeded = 0
+    failed_ids: list[int] = []
+
+    while True:
+        async with async_session_factory() as session:
+            candidates = await select_candidates(session, limit_ids=limit_ids, limit=limit)
+        if not candidates:
+            break
+
+        result = await _process_candidates(candidates, sleep=sleep)
+        total_candidates += result["total_candidates"]
+        total_succeeded += result["succeeded"]
+        failed_ids = result["failed_ids"]
+
+        if limit_ids is not None or limit is not None:
+            break
+
+    return {
+        "total_candidates": total_candidates,
+        "succeeded": total_succeeded,
+        "failed_ids": failed_ids,
+    }
