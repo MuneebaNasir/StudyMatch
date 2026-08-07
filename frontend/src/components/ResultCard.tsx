@@ -25,7 +25,7 @@ export function ResultCard({ result, onClick }: ResultCardProps) {
       <div className="flex items-start justify-between gap-3">
         <div>
           <h3 className="font-medium text-ink">{result.course_name}</h3>
-          <p className="text-sm text-ink/60">
+          <p className="text-sm text-ink/70">
             {result.university}{result.city ? ` — ${result.city}` : ""}
           </p>
         </div>

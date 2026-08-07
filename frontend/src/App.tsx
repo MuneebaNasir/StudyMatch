@@ -144,7 +144,7 @@ export default function App() {
               <button
                 type="button"
                 onClick={handleStartOver}
-                className="shrink-0 text-sm text-slate-400 hover:text-slate-700"
+                className="shrink-0 text-sm text-ink/40 hover:text-ink"
               >
                 Start over
               </button>

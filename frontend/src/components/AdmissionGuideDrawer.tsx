@@ -32,7 +32,7 @@ export function AdmissionGuideDrawer({
           </Dialog.Description>
 
           {isError && <p className="text-sm text-red-600">Couldn't load this program's details.</p>}
-          {isLoading && <p className="text-sm text-ink/60">Loading...</p>}
+          {isLoading && <p className="text-sm text-ink/70">Loading...</p>}
 
           {!isLoading && !isError && program && (
             <div className="space-y-4">
@@ -113,7 +113,7 @@ function RequirementRow({ label, quote }: { label: string; quote: string | null 
   return (
     <div className="rounded-lg border border-line p-3">
       <p className="text-sm font-medium text-ink">{label}</p>
-      {quote && <p className="mt-1 text-xs italic text-ink/60">"{quote}"</p>}
+      {quote && <p className="mt-1 text-xs italic text-ink/70">"{quote}"</p>}
     </div>
   );
 }
@@ -121,7 +121,7 @@ function RequirementRow({ label, quote }: { label: string; quote: string | null 
 function RawAdmissionText({ rawSections }: { rawSections: Record<string, string> }) {
   const sections = Object.entries(rawSections).filter(([, text]) => text);
   if (sections.length === 0) {
-    return <p className="text-sm text-ink/60">No admission text available for this program.</p>;
+    return <p className="text-sm text-ink/70">No admission text available for this program.</p>;
   }
   return (
     <div className="space-y-3">

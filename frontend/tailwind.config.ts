@@ -8,7 +8,7 @@ export default {
         background: "#FBF9F6",
         ink: "#2B2622",
         accent: {
-          DEFAULT: "#C1622B",
+          DEFAULT: "#A9521F",
           soft: "#F3E2D6",
         },
         line: "#E7E0D8",

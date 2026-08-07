@@ -14,7 +14,7 @@ export function Pagination({ offset, limit, total, onPageChange }: PaginationPro
   const canGoNext = offset + limit < total;
 
   return (
-    <div className="flex items-center justify-between text-sm text-slate-600">
+    <div className="flex items-center justify-between text-sm text-ink/70">
       <span>
         Showing {start}-{end} of {total}
       </span>
@@ -23,7 +23,7 @@ export function Pagination({ offset, limit, total, onPageChange }: PaginationPro
           type="button"
           disabled={!canGoPrev}
           onClick={() => onPageChange(Math.max(0, offset - limit))}
-          className="rounded-md border border-slate-200 px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-md border border-line px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Previous
         </button>
@@ -31,7 +31,7 @@ export function Pagination({ offset, limit, total, onPageChange }: PaginationPro
           type="button"
           disabled={!canGoNext}
           onClick={() => onPageChange(offset + limit)}
-          className="rounded-md border border-slate-200 px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-md border border-line px-3 py-1 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Next
         </button>

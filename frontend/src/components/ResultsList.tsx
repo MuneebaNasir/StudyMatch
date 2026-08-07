@@ -20,7 +20,7 @@ export function ResultsList({ results, isLoading, onSelectProgram }: ResultsList
 
   if (results.length === 0) {
     return (
-      <p className="text-sm text-ink/60">No programs matched — try loosening a filter or rephrasing.</p>
+      <p className="text-sm text-ink/70">No programs matched — try loosening a filter or rephrasing.</p>
     );
   }
 
