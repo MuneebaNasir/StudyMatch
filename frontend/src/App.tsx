@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { AdmissionGuideDrawer } from "./components/AdmissionGuideDrawer";
 import { ChatQueryBox } from "./components/ChatQueryBox";
+import { Header } from "./components/Header";
 import { ExtractionSummary } from "./components/ExtractionSummary";
 import { Pagination } from "./components/Pagination";
 import { ResultsList } from "./components/ResultsList";
@@ -119,7 +120,7 @@ export default function App() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
-      <h1 className="text-2xl font-semibold text-slate-900">DAAD Program Search</h1>
+      <Header />
       <ChatQueryBox onSubmit={handleSubmit} isPending={querySearch.isPending} />
 
       {querySearch.isError && (
