@@ -5,7 +5,11 @@ from pydantic import BaseModel, Field
 
 class SubScore(BaseModel):
     section: str
-    min_score: float
+    # Null when the text names this subscore section without a determinable
+    # numeric threshold -- do not invent one.
+    min_score: float | None = Field(
+        None, description="The required numeric threshold for this subscore, if stated."
+    )
 
 
 class StandardizedTest(BaseModel):

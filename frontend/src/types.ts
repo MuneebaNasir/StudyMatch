@@ -49,7 +49,7 @@ export interface QueryResponse {
 
 export interface SubScore {
   section: string;
-  min_score: number;
+  min_score: number | null;
 }
 
 export interface StandardizedTest {

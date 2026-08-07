@@ -82,3 +82,12 @@ def test_accepted_test_allows_null_min_score():
     too, for the same reason as LanguageRequirement.level above."""
     test = AcceptedTest(test_name="placement test", min_score=None)
     assert test.min_score is None
+
+
+def test_subscore_allows_null_min_score():
+    """Same root cause again, third occurrence: the LLM sometimes names a
+    subscore section (e.g. "Quantitative Reasoning") without a determinable
+    numeric threshold in the source text -- a required float rejects that
+    real, valid case."""
+    subscore = SubScore(section="Quantitative Reasoning", min_score=None)
+    assert subscore.min_score is None
