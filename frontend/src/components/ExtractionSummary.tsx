@@ -59,7 +59,7 @@ interface ExtractionSummaryProps {
 export function ExtractionSummary({ filters, profile, onFiltersChange }: ExtractionSummaryProps) {
   if (filters === null && profile === null) {
     return (
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-ink/60">
         Couldn't extract structured details from your query, showing closest matches instead.
       </p>
     );
@@ -78,14 +78,14 @@ export function ExtractionSummary({ filters, profile, onFiltersChange }: Extract
       {filterChips.map((chip) => (
         <span
           key={chip.key}
-          className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-3 py-1 text-xs text-slate-700"
+          className="inline-flex items-center gap-1 rounded-full bg-accent-soft px-3 py-1 text-xs text-ink"
         >
           {chip.label}
           <button
             type="button"
             aria-label={`Remove filter: ${chip.label}`}
             onClick={() => removeFilterChip(chip.key)}
-            className="ml-1 text-slate-400 hover:text-slate-700"
+            className="ml-1 text-ink/40 hover:text-ink"
           >
             ×
           </button>
@@ -94,7 +94,7 @@ export function ExtractionSummary({ filters, profile, onFiltersChange }: Extract
       {profileChips.map((label) => (
         <span
           key={label}
-          className="inline-flex items-center rounded-full bg-slate-50 px-3 py-1 text-xs text-slate-500"
+          className="inline-flex items-center rounded-full bg-line/40 px-3 py-1 text-xs text-ink/60"
         >
           {label}
         </span>
