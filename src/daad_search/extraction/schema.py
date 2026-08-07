@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class SubScore(BaseModel):
@@ -24,12 +24,24 @@ class AcceptedTest(BaseModel):
     """One way to satisfy a language requirement, e.g. IELTS 6.5."""
 
     test_name: str
-    min_score: str  # kept as a string: scores vary in format (6.5, 72, "B2 First")
+    # Kept as a string: scores vary in format (6.5, 72, "B2 First"). Null when
+    # the named method has no numeric/graded score to report (e.g. a
+    # placement test or interview) -- do not invent one.
+    min_score: str | None = Field(
+        None,
+        description='The required score/level for this test, e.g. "6.5", "72", "B2 First". '
+        "Null if this verification method (e.g. a placement test or interview) has no "
+        "numeric or graded score.",
+    )
 
 
 class LanguageRequirement(BaseModel):
     language: str  # "German" or "English"
-    level: str  # CEFR code, or "none_required"
+    level: str | None = Field(
+        None,
+        description="CEFR code (e.g. \"B2\"). Null if the text states no minimum level is "
+        "required -- do not invent a level.",
+    )
     # Alternatives -- the applicant needs to satisfy ONLY ONE of these tests,
     # not all of them. Do not treat this list as several separate mandatory
     # requirements.

@@ -62,3 +62,23 @@ def test_eligibility_extraction_defaults_optional_fields():
 def test_extraction_confidence_rejects_invalid_value():
     with pytest.raises(ValidationError):
         EligibilityExtraction(extraction_confidence="very_high")
+
+
+def test_language_requirement_allows_null_level():
+    """Groq's structured-output validator rejects the whole tool call when a
+    required string field comes back null -- and the LLM legitimately has no
+    level to report when the source text says e.g. "No minimum language
+    level required". A required str was simply the wrong type for this
+    field; None must be a valid, first-class value here."""
+    requirement = LanguageRequirement(
+        language="English", level=None, source_quote="No minimum language level required",
+    )
+    assert requirement.level is None
+
+
+def test_accepted_test_allows_null_min_score():
+    """Some accepted "tests" are verification methods with no numeric/graded
+    score (e.g. a placement test or interview) -- None must be valid here
+    too, for the same reason as LanguageRequirement.level above."""
+    test = AcceptedTest(test_name="placement test", min_score=None)
+    assert test.min_score is None

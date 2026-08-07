@@ -84,7 +84,11 @@ function StructuredAdmissionGuide({
         />
       )}
       {(eligibility.language_requirements ?? []).map((req, index) => (
-        <RequirementRow key={`${req.language}-${index}`} label={`${req.language}: ${req.level}`} quote={req.source_quote} />
+        <RequirementRow
+          key={`${req.language}-${index}`}
+          label={`${req.language}: ${req.level ?? "No minimum level required"}`}
+          quote={req.source_quote}
+        />
       ))}
       {(eligibility.standardized_tests ?? []).map((test, index) => (
         <RequirementRow

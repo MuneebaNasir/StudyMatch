@@ -68,6 +68,28 @@ describe("AdmissionGuideDrawer", () => {
     expect(screen.getByText(/meets the grade threshold/i)).toBeInTheDocument();
   });
 
+  it("renders a null language level as 'no minimum level required', not the literal word null", () => {
+    render(
+      <AdmissionGuideDrawer
+        programId={10396} verdict={null} isLoading={false} isError={false} onClose={vi.fn()}
+        program={{
+          ...BASE_PROGRAM,
+          structured_eligibility: {
+            requires_gre: null, requires_gmat: null, min_german_level: null, min_english_level: null,
+            extraction_confidence: "high", degree_prerequisite: null, grade_requirement: null,
+            standardized_tests: [],
+            language_requirements: [
+              { language: "German", level: null, accepted_tests: [], source_quote: "No minimum language level required" },
+            ],
+            notes: null,
+          },
+        }}
+      />,
+    );
+    expect(screen.getByText(/german: no minimum level required/i)).toBeInTheDocument();
+    expect(screen.queryByText(/german: null/i)).not.toBeInTheDocument();
+  });
+
   it("renders structured requirements with their source quotes when present", () => {
     render(
       <AdmissionGuideDrawer

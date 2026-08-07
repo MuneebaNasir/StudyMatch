@@ -90,8 +90,8 @@ def test_extract_eligibility_captures_conditional_gre_waiver():
     assert "1.3" in gre.waiver
     # Deliberately no assertion on the *number* of language requirements: the
     # German text ("No minimum language level required") maps to the schema's
-    # own level="none_required", so both a 1-entry (English only) and a 2-entry
-    # (German none_required + English B2) extraction are schema-conformant.
+    # own level=None, so both a 1-entry (English only) and a 2-entry (German
+    # level=None + English B2) extraction are schema-conformant.
     english = next(lr for lr in result.language_requirements if lr.language == "English")
     assert english.level == "B2"
 

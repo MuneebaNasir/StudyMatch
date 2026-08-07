@@ -63,12 +63,12 @@ export interface StandardizedTest {
 
 export interface AcceptedTest {
   test_name: string;
-  min_score: string;
+  min_score: string | null;
 }
 
 export interface LanguageRequirement {
   language: string;
-  level: string;
+  level: string | null;
   accepted_tests: AcceptedTest[];
   source_quote: string;
 }
