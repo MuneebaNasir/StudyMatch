@@ -17,6 +17,12 @@ dependencies = [
     "qdrant-client>=1.9",
     "voyageai>=0.2",
     "sentence-transformers>=3.0",
+    # Listed explicitly (not just pulled in transitively via
+    # sentence-transformers) because [tool.uv.sources]'s index override below
+    # is silently ignored for a package that's only a transitive dependency --
+    # confirmed by isolated reproduction. Being a direct dependency is what
+    # makes the pytorch-cpu source override actually apply.
+    "torch",
     "langchain-groq>=0.2",
     "langchain-mistralai>=0.2",
     "langchain-google-genai>=2.0",
@@ -42,3 +48,15 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.uv.sources]
+# The default PyPI wheel for Linux bundles CUDA runtime libraries (~900MB)
+# that this project never uses -- embeddings run on CPU everywhere (see
+# EMBEDDING_PROVIDER=local in config.py). The CPU-only index avoids
+# shipping that dead weight in the Docker image.
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
