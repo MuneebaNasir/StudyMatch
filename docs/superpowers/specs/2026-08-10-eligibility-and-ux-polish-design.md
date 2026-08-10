@@ -16,7 +16,7 @@ This spec covers all seven, decided through direct conversation with the user (g
 
 ## Goal
 
-Cut the automatic eligibility cost by 80% while keeping every program's eligibility reachable on demand; make the admission guide's raw content genuinely browsable; give users a concrete, editable example of what to ask instead of a blank box; stop showing the same sentence twice; show a real German-scale grade equivalent using logic the backend already has; make production queries inspectable via structured logs; and give the initial-query loading state a sense of progress instead of a static skeleton.
+Cut the automatic eligibility cost by 90% while keeping every program's eligibility reachable on demand; make the admission guide's raw content genuinely browsable; give users a concrete, editable example of what to ask instead of a blank box; stop showing the same sentence twice; show a real German-scale grade equivalent using logic the backend already has; make production queries inspectable via structured logs; and give the initial-query loading state a sense of progress instead of a static skeleton.
 
 ## Scope
 
@@ -31,10 +31,10 @@ Cut the automatic eligibility cost by 80% while keeping every program's eligibil
 
 ---
 
-## Feature 1: Eligibility — top 2 automatic, button for the rest
+## Feature 1: Eligibility — top 1 automatic, button for the rest
 
 **Backend (`src/daad_search/api/query.py`):**
-- `REASONING_CANDIDATE_CAP` changes from `10` to `2` (line 16). This is the only change to the automatic path — everything else in `handle_query` (the `no_data`/`unclear` fallback logic for results outside the pool) already works correctly for any cap value.
+- `REASONING_CANDIDATE_CAP` changes from `10` to `1` (line 16). This is the only change to the automatic path — everything else in `handle_query` (the `no_data`/`unclear` fallback logic for results outside the pool) already works correctly for any cap value.
 
 **New endpoint** for on-demand single-program evaluation, in `src/daad_search/api/main.py`:
 
@@ -77,7 +77,7 @@ This mirrors `handle_query`'s existing `no_data`/`unclear` fallback pattern exac
 **Frontend (`AdmissionGuideDrawer.tsx`):** where `verdict.eligibility_reasoning ?? "No reasoning available."` currently renders (line 56):
 - If `verdict.eligibility_verdict === "no_data"` **and** a profile exists (`extracted_profile` has at least one non-null field): show an **"Evaluate eligibility"** button instead of the reasoning text. Clicking it calls the new endpoint with the current query's profile, shows a loading state, then updates to show the real verdict badge + reasoning — replacing the "Not evaluated" badge and button with the real result.
 - If `verdict.eligibility_verdict === "no_data"` **and no profile exists at all**: show a plain message — "Add your background to the search box to check eligibility" — instead of a button that could never produce a real result.
-- Otherwise (a real verdict, from either the automatic top-2 or a previous on-demand evaluation): unchanged, shows reasoning text as today.
+- Otherwise (a real verdict, from either the automatic top-1 or a previous on-demand evaluation): unchanged, shows reasoning text as today.
 
 **State flow:** `AdmissionGuideDrawer` currently receives a `verdict` prop but not the underlying profile or a way to report a new one back up. Two new props are needed:
 - `profile: StudentProfile | null` — `App.tsx` already holds this as `queryResponse.extracted_profile` (currently passed to `ExtractionSummary` only); wire the same value into `AdmissionGuideDrawer` too, so the drawer can send it in the `evaluate-eligibility` request body.
