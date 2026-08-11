@@ -38,6 +38,7 @@ export default function App() {
   const [activeQuery, setActiveQuery] = useState<ActiveQuery | null>(null);
   const [offset, setOffset] = useState(0);
   const [totalMatched, setTotalMatched] = useState(0);
+  const [pageCache, setPageCache] = useState<Map<number, QueryResponse>>(new Map());
 
   const querySearch = useQuerySearch();
   const filteredSearch = useFilteredSearch();
@@ -50,15 +51,38 @@ export default function App() {
 
   function runQuerySearch(query: string, offset: number) {
     setActiveQuery({ type: "query", query });
+    const cached = pageCache.get(offset);
+    if (cached) {
+      setQueryResponse(cached);
+      setDisplayedResults(cached.results);
+      setActiveFilters(cached.extracted_filters);
+      setTotalMatched(cached.total_matched);
+      // Deliberately does NOT touch verdictMap. pageCache holds a frozen
+      // snapshot from whenever this page was first fetched; if the user
+      // evaluated a program on-demand since then, verdictMap already holds
+      // a more current value than the snapshot does for that id. Re-merging
+      // the stale snapshot would overwrite it. resultsForDisplay always
+      // reads verdicts from the live verdictMap, never from what's baked
+      // into displayedResults/the cached response, so leaving it alone here
+      // is correct.
+      return;
+    }
     querySearch.mutate(
       { query, offset },
       {
         onSuccess: (response) => {
+          setPageCache((previous) => new Map(previous).set(offset, response));
           setQueryResponse(response);
           setDisplayedResults(response.results);
           setActiveFilters(response.extracted_filters);
-          setVerdictMap(buildVerdictMap(response.results));
           setTotalMatched(response.total_matched);
+          setVerdictMap((previous) => {
+            const merged = new Map(previous);
+            for (const [id, info] of buildVerdictMap(response.results)) {
+              merged.set(id, info);
+            }
+            return merged;
+          });
         },
       },
     );
@@ -86,6 +110,7 @@ export default function App() {
 
   function handleSubmit(query: string) {
     setOffset(0);
+    setPageCache(new Map());
     runQuerySearch(query, 0);
   }
 
@@ -109,6 +134,7 @@ export default function App() {
     setDisplayedResults([]);
     setActiveFilters(null);
     setVerdictMap(new Map());
+    setPageCache(new Map());
     setSelectedProgramId(null);
     setActiveQuery(null);
     setOffset(0);

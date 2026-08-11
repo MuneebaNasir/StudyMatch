@@ -177,4 +177,116 @@ describe("App", () => {
     expect(screen.queryByText("Robotics Engineering MSc")).not.toBeInTheDocument();
     expect(screen.queryByText(/start over/i)).not.toBeInTheDocument();
   });
+
+  it("does not re-fetch a page that's already been loaded when paginating back to it", async () => {
+    const offsetCalls: number[] = [];
+    mswServer.use(
+      http.post(`${API_BASE_URL}/query`, async ({ request }) => {
+        const body = (await request.json()) as { offset: number };
+        offsetCalls.push(body.offset);
+        return HttpResponse.json({
+          results: [{
+            id: body.offset + 1, course_name: `Course ${body.offset + 1}`, university: "TU X", city: null,
+            languages: ["English"], subject: null, tuition_fees_text: null, application_deadline_text: null,
+            link: "https://example.com", score: null, eligibility_verdict: "no_data" as const, eligibility_reasoning: null,
+          }],
+          total_matched: 45,
+          extracted_filters: null, extracted_profile: null, semantic_query: null,
+        });
+      }),
+    );
+
+    renderApp();
+
+    const textarea = screen.getByRole("textbox");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "robotics masters");
+    await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
+
+    expect(await screen.findByText("Course 1")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    expect(await screen.findByText("Course 21")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /previous/i }));
+    expect(await screen.findByText("Course 1")).toBeInTheDocument();
+
+    expect(offsetCalls).toEqual([0, 20]);
+  });
+
+  it("keeps an on-demand-evaluated verdict after paginating away and back", async () => {
+    let page0Calls = 0;
+    mswServer.use(
+      http.post(`${API_BASE_URL}/query`, async ({ request }) => {
+        const body = (await request.json()) as { offset: number };
+        if (body.offset === 0) {
+          page0Calls += 1;
+          return HttpResponse.json({
+            results: [{
+              id: 1, course_name: "Robotics Engineering MSc", university: "TU Berlin", city: "Berlin",
+              languages: ["English"], subject: null, tuition_fees_text: null, application_deadline_text: null,
+              link: "https://example.com/1", score: 0.9, eligibility_verdict: "no_data", eligibility_reasoning: null,
+            }],
+            total_matched: 25,
+            extracted_filters: { languages: null, max_tuition_free_only: null, subject: null, city: null, course_type: null },
+            extracted_profile: { degree_field: null, grade_value: null, grade_scale: null, nationality: "Pakistan", other_notes: null },
+            semantic_query: "robotics",
+          });
+        }
+        return HttpResponse.json({
+          results: [{
+            id: 21, course_name: "Data Science MSc", university: "TU X", city: null,
+            languages: ["English"], subject: null, tuition_fees_text: null, application_deadline_text: null,
+            link: "https://example.com/21", score: null, eligibility_verdict: "no_data" as const, eligibility_reasoning: null,
+          }],
+          total_matched: 25,
+          extracted_filters: null, extracted_profile: null, semantic_query: null,
+        });
+      }),
+      http.get(`${API_BASE_URL}/programs/1`, () =>
+        HttpResponse.json({
+          id: 1, course_name: "Robotics Engineering MSc", university: "TU Berlin", city: "Berlin",
+          languages: ["English"], subject: null, tuition_fees_text: null, application_deadline_text: null,
+          link: "https://example.com/1", score: 0.9, course_type: 2, degree: null, duration: null, beginning: null,
+          raw_sections: {},
+          structured_eligibility: {
+            requires_gre: null, requires_gmat: null, min_german_level: null, min_english_level: null,
+            extraction_confidence: "high", degree_prerequisite: null, grade_requirement: null,
+            standardized_tests: [], language_requirements: [], notes: null,
+          },
+        }),
+      ),
+      http.post(`${API_BASE_URL}/programs/1/evaluate-eligibility`, () =>
+        HttpResponse.json({ eligibility_verdict: "eligible", eligibility_reasoning: "Meets all requirements." }),
+      ),
+    );
+
+    renderApp();
+
+    const textarea = screen.getByRole("textbox");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "robotics masters");
+    await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
+
+    expect(await screen.findByText("Robotics Engineering MSc")).toBeInTheDocument();
+    expect(page0Calls).toBe(1);
+
+    await userEvent.click(screen.getByText("Robotics Engineering MSc"));
+    await userEvent.click(await screen.findByRole("button", { name: /evaluate eligibility/i }));
+    await waitFor(() =>
+      expect(
+        within(screen.getByText("Eligibility").parentElement as HTMLElement).getByText("Eligible"),
+      ).toBeInTheDocument(),
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /close/i }));
+
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    expect(await screen.findByText("Data Science MSc")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /previous/i }));
+    expect(await screen.findByText("Robotics Engineering MSc")).toBeInTheDocument();
+    expect(screen.getByText("Eligible")).toBeInTheDocument();
+    expect(page0Calls).toBe(1);
+  });
 });
