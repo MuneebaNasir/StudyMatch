@@ -119,6 +119,21 @@ def test_reason_about_eligibility_returns_none_when_all_providers_fail(monkeypat
     assert reason_about_eligibility(StudentProfile(), candidates) is None
 
 
+def test_reason_about_eligibility_returns_none_when_structured_output_is_none(monkeypatch):
+    from daad_search.query_understanding import reasoner as reasoner_module
+
+    class ReturnsNoneChain:
+        def invoke(self, prompt, config=None):
+            return None
+
+    monkeypatch.setattr(reasoner_module, "get_fallback_llm", lambda schema: ReturnsNoneChain())
+
+    candidates = [
+        CandidateForReasoning(program_id=1, course_name="Test", structured_eligibility={}),
+    ]
+    assert reason_about_eligibility(StudentProfile(), candidates) is None
+
+
 def test_reason_about_eligibility_logs_one_eligibility_record_per_verdict(monkeypatch, caplog):
     from daad_search.query_understanding import reasoner as reasoner_module
 

@@ -153,6 +153,9 @@ def reason_about_eligibility(
     except Exception:
         logger.exception("Failed to reason about eligibility for %d candidates", len(candidates))
         return None
+    if result is None:
+        logger.warning("Eligibility reasoning returned no structured output for %d candidates", len(candidates))
+        return None
 
     candidates_by_id = {c.program_id: c for c in candidates}
     for v in result.verdicts:

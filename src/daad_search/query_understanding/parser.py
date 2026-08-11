@@ -42,6 +42,9 @@ def parse_query(query: str) -> ParsedQuery | None:
     except Exception:
         logger.exception("Failed to parse query across all LLM providers: %r", query)
         return None
+    if parsed is None:
+        logger.warning("Query parsing returned no structured output: %r", query)
+        return None
     logger.info(
         "QUERY    raw_query=%r model=%s\n"
         "         filters=%s semantic_query=%r\n"

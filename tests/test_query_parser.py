@@ -30,6 +30,18 @@ def test_parse_query_returns_none_when_all_providers_fail(monkeypatch):
     assert parse_query("anything") is None
 
 
+def test_parse_query_returns_none_when_structured_output_is_none(monkeypatch):
+    from daad_search.query_understanding import parser as parser_module
+
+    class ReturnsNoneChain:
+        def invoke(self, prompt, config=None):
+            return None
+
+    monkeypatch.setattr(parser_module, "get_fallback_llm", lambda schema: ReturnsNoneChain())
+
+    assert parse_query("anything") is None
+
+
 def test_parse_query_logs_the_raw_query_filters_and_profile(monkeypatch, caplog):
     from daad_search.query_understanding import parser as parser_module
 
