@@ -55,7 +55,7 @@ export function ChatQueryBox({ onSubmit, isPending }: ChatQueryBoxProps) {
         className="resize-none rounded-lg border border-line p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
       />
       <p
-        className={`text-xs text-ink/40 transition-opacity duration-300 ${isTyping ? "opacity-100" : "opacity-0"}`}
+        className={`pointer-events-none text-xs text-ink/40 transition-opacity duration-300 ${isTyping ? "opacity-100" : "opacity-0"}`}
         aria-hidden="true"
       >
         🐌 typing...
