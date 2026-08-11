@@ -11,6 +11,7 @@ class StudentProfile(BaseModel):
     grade_scale: str | None = None
     nationality: str | None = None
     other_notes: str | None = None
+    grade_value_on_german_scale: float | None = None
 
 
 class ParsedQuery(BaseModel):

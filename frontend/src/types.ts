@@ -12,6 +12,7 @@ export interface StudentProfile {
   grade_scale?: string | null;
   nationality?: string | null;
   other_notes?: string | null;
+  grade_value_on_german_scale?: number | null;
 }
 
 export type EligibilityVerdictValue = "eligible" | "likely_eligible" | "not_eligible" | "unclear" | "no_data";

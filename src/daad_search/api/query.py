@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models import Eligibility
 from ..query_understanding.parser import parse_query
-from ..query_understanding.reasoner import reason_about_eligibility
+from ..query_understanding.reasoner import convert_to_german_scale, reason_about_eligibility
 from ..query_understanding.schema import (
     CandidateForReasoning,
     EligibilityVerdict,
@@ -29,6 +29,9 @@ async def handle_query(session: AsyncSession, query: str, limit: int, offset: in
         filters = SearchFilters()
         semantic_query = query
         profile = None
+
+    if profile is not None and profile.grade_value is not None:
+        profile.grade_value_on_german_scale = convert_to_german_scale(profile.grade_value, profile.grade_scale)
 
     if semantic_query:
         results, total = await search_module.hybrid_search(session, filters, semantic_query, limit, offset)

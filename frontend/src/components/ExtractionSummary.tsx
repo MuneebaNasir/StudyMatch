@@ -43,7 +43,11 @@ function buildProfileChips(profile: StudentProfile): string[] {
   const chips: string[] = [];
   if (profile.degree_field) chips.push(`Degree: ${profile.degree_field}`);
   if (profile.grade_value != null) {
-    chips.push(`Grade: ${profile.grade_value}${profile.grade_scale ? ` (${profile.grade_scale})` : ""}`);
+    const scaleSuffix = profile.grade_scale ? ` (${profile.grade_scale})` : "";
+    const germanSuffix = profile.grade_value_on_german_scale != null
+      ? ` [≈ ${profile.grade_value_on_german_scale} German scale]`
+      : "";
+    chips.push(`Grade: ${profile.grade_value}${scaleSuffix}${germanSuffix}`);
   }
   if (profile.nationality) chips.push(`Nationality: ${profile.nationality}`);
   if (profile.other_notes) chips.push(profile.other_notes);

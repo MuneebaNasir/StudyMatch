@@ -65,6 +65,20 @@ describe("ExtractionSummary", () => {
     expect(screen.queryByRole("button", { name: /remove.*degree/i })).not.toBeInTheDocument();
   });
 
+  it("shows the German-scale equivalent in brackets when the backend provides one", () => {
+    render(
+      <ExtractionSummary
+        filters={{ languages: null, max_tuition_free_only: null, subject: null, city: null, course_type: null }}
+        profile={{
+          degree_field: null, grade_value: 3.2, grade_scale: "4.0 GPA scale (USA)",
+          nationality: null, other_notes: null, grade_value_on_german_scale: 1.7,
+        }}
+        onFiltersChange={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Grade: 3.2 (4.0 GPA scale (USA)) [≈ 1.7 German scale]")).toBeInTheDocument();
+  });
+
   it("shows a fallback notice when both filters and profile are null", () => {
     render(<ExtractionSummary filters={null} profile={null} onFiltersChange={vi.fn()} />);
     expect(screen.getByText(/couldn't extract structured details/i)).toBeInTheDocument();

@@ -188,3 +188,41 @@ def test_evaluate_eligibility_returns_real_verdict(api_client, seeded_session_fa
     body = response.json()
     assert body["eligibility_verdict"] == "eligible"
     assert body["eligibility_reasoning"] == "Meets requirements."
+
+
+@pytest.mark.seed_programs([
+    {"id": 1, "course_name": "Robotics Engineering MSc", "link": "https://example.com/1"},
+])
+def test_query_populates_german_scale_grade_conversion(api_client, monkeypatch):
+    monkeypatch.setattr(
+        query_module, "parse_query",
+        lambda q: ParsedQuery(
+            filters=SearchFilters(), semantic_query=None,
+            student_profile=StudentProfile(grade_value=2.0, grade_scale="4.0 GPA scale (USA)"),
+        ),
+    )
+
+    response = api_client.post("/query", json={"query": "robotics masters"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["extracted_profile"]["grade_value_on_german_scale"] == pytest.approx(3.0)
+
+
+@pytest.mark.seed_programs([
+    {"id": 1, "course_name": "Robotics Engineering MSc", "link": "https://example.com/1"},
+])
+def test_query_leaves_german_scale_conversion_null_for_unrecognized_scale(api_client, monkeypatch):
+    monkeypatch.setattr(
+        query_module, "parse_query",
+        lambda q: ParsedQuery(
+            filters=SearchFilters(), semantic_query=None,
+            student_profile=StudentProfile(grade_value=7.5, grade_scale="some obscure national scale"),
+        ),
+    )
+
+    response = api_client.post("/query", json={"query": "robotics masters"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["extracted_profile"]["grade_value_on_german_scale"] is None
