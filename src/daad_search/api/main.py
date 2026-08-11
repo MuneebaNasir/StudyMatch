@@ -1,11 +1,15 @@
+from typing import Literal
+
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config import settings
 from ..db.models import Eligibility, Program
 from ..db.session import async_session_factory
-from ..query_understanding.schema import QueryRequest, QueryResponse
+from ..query_understanding.reasoner import reason_about_eligibility
+from ..query_understanding.schema import CandidateForReasoning, QueryRequest, QueryResponse, StudentProfile
 from .query import handle_query
 from .schemas import ProgramDetail, SearchRequest, SearchResponse
 from .search import filtered_search, hybrid_search, to_search_result
@@ -67,3 +71,38 @@ async def get_program(
         raw_sections=row.raw_sections,
         structured_eligibility=eligibility.structured_eligibility if eligibility else None,
     )
+
+
+class EvaluateEligibilityRequest(BaseModel):
+    profile: StudentProfile
+
+
+class EvaluateEligibilityResponse(BaseModel):
+    eligibility_verdict: Literal["eligible", "likely_eligible", "not_eligible", "unclear", "no_data"]
+    eligibility_reasoning: str | None
+
+
+@app.post("/programs/{program_id}/evaluate-eligibility", response_model=EvaluateEligibilityResponse)
+async def evaluate_eligibility(
+    program_id: int, request: EvaluateEligibilityRequest, session: AsyncSession = Depends(get_session)
+) -> EvaluateEligibilityResponse:
+    row = await session.get(Program, program_id)
+    if row is None:
+        raise HTTPException(status_code=404, detail="Program not found")
+
+    eligibility = await session.get(Eligibility, program_id)
+    if eligibility is None or not eligibility.structured_eligibility:
+        return EvaluateEligibilityResponse(eligibility_verdict="no_data", eligibility_reasoning=None)
+
+    candidate = CandidateForReasoning(
+        program_id=program_id, course_name=row.course_name,
+        structured_eligibility=eligibility.structured_eligibility,
+    )
+    verdicts = reason_about_eligibility(request.profile, [candidate])
+    if not verdicts:
+        return EvaluateEligibilityResponse(
+            eligibility_verdict="unclear",
+            eligibility_reasoning="Eligibility reasoning was unavailable for this program.",
+        )
+    v = verdicts[0]
+    return EvaluateEligibilityResponse(eligibility_verdict=v.verdict, eligibility_reasoning=v.reasoning)

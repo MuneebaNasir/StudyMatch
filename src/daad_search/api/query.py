@@ -13,7 +13,7 @@ from ..query_understanding.schema import (
 from . import search as search_module
 from .schemas import SearchFilters
 
-REASONING_CANDIDATE_CAP = 10
+REASONING_CANDIDATE_CAP = 1
 
 
 async def handle_query(session: AsyncSession, query: str, limit: int, offset: int = 0) -> QueryResponse:

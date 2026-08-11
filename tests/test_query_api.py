@@ -125,3 +125,66 @@ def test_query_parse_failure_falls_back_to_semantic_search(api_client, test_qdra
     assert body["extracted_profile"] is None
     assert any(r["id"] == 1 for r in body["results"])
     assert all(r["eligibility_verdict"] == "no_data" for r in body["results"])
+
+
+from daad_search.api import main as main_module
+from daad_search.query_understanding.schema import EligibilityVerdict
+
+
+@pytest.mark.seed_programs([
+    {"id": 1, "course_name": "Robotics Engineering MSc", "link": "https://example.com/1"},
+])
+def test_evaluate_eligibility_returns_no_data_without_structured_eligibility(api_client):
+    response = api_client.post(
+        "/programs/1/evaluate-eligibility",
+        json={"profile": {"nationality": "Pakistan"}},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["eligibility_verdict"] == "no_data"
+    assert body["eligibility_reasoning"] is None
+
+
+def test_evaluate_eligibility_returns_404_for_unknown_program(api_client):
+    response = api_client.post(
+        "/programs/999999/evaluate-eligibility",
+        json={"profile": {"nationality": "Pakistan"}},
+    )
+    assert response.status_code == 404
+
+
+@pytest.mark.seed_programs([
+    {"id": 1, "course_name": "Robotics Engineering MSc", "link": "https://example.com/1"},
+])
+def test_evaluate_eligibility_returns_unclear_when_reasoning_fails(api_client, seeded_session_factory, monkeypatch):
+    _seed_eligibility(seeded_session_factory, 1, {"grade_requirement": {"value": 2.5}})
+    monkeypatch.setattr(main_module, "reason_about_eligibility", lambda profile, candidates: None)
+
+    response = api_client.post(
+        "/programs/1/evaluate-eligibility",
+        json={"profile": {"nationality": "Pakistan"}},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["eligibility_verdict"] == "unclear"
+    assert body["eligibility_reasoning"] == "Eligibility reasoning was unavailable for this program."
+
+
+@pytest.mark.seed_programs([
+    {"id": 1, "course_name": "Robotics Engineering MSc", "link": "https://example.com/1"},
+])
+def test_evaluate_eligibility_returns_real_verdict(api_client, seeded_session_factory, monkeypatch):
+    _seed_eligibility(seeded_session_factory, 1, {"grade_requirement": {"value": 2.5}})
+    monkeypatch.setattr(
+        main_module, "reason_about_eligibility",
+        lambda profile, candidates: [EligibilityVerdict(program_id=1, verdict="eligible", reasoning="Meets requirements.")],
+    )
+
+    response = api_client.post(
+        "/programs/1/evaluate-eligibility",
+        json={"profile": {"nationality": "Pakistan"}},
+    )
+    assert response.status_code == 200
+    body = response.json()
+    assert body["eligibility_verdict"] == "eligible"
+    assert body["eligibility_reasoning"] == "Meets requirements."
