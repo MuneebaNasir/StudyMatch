@@ -191,7 +191,7 @@ No new templates — per explicit user decision, this is framing for the existin
 
 ## Feature 4: Landing-page redesign
 
-Applies **only while `!hasSubmitted`** (`App.tsx`'s existing derived boolean) — once a search has run, the compact header returns and the decorative panel/stickers go away, since the problem being solved is specifically "the *pre-search* view is bland," not the post-search one, and keeping the full decorative treatment on screen after a search would waste vertical space above real results.
+Applies at all times, before and after a search — per explicit user decision, the cute treatment is the app's visual identity, not a one-time pre-search flourish. The panel sits above the extraction summary/results/pagination, which are unaffected and keep their current plain layout.
 
 **Typography:** `frontend/index.html`'s Google Fonts link gains Comfortaa alongside the existing Inter:
 
@@ -218,29 +218,23 @@ fontFamily: {
   >
   > Write your query below and I'll find the right program for you.
 
-**Decorative panel** (new markup in `App.tsx`, wrapping `Header` and `ChatQueryBox` together, rendered only when `!hasSubmitted`): a soft accent-tinted rounded panel (`bg-accent-soft`, the same token already used for filter chips — no new color needed) containing a fixed arrangement of low-opacity, decorative emoji plus a larger snail mascot emoji near the heading. All decorative emoji are `aria-hidden="true"` and `pointer-events-none` (purely visual, never focusable, never intercept clicks):
+**Decorative panel** (new markup in `App.tsx`, wrapping `Header` and `ChatQueryBox` together): a soft accent-tinted rounded panel (`bg-accent-soft`, the same token already used for filter chips — no new color needed) containing a fixed arrangement of low-opacity, decorative emoji plus a larger snail mascot emoji near the heading. All decorative emoji are `aria-hidden="true"` and `pointer-events-none` (purely visual, never focusable, never intercept clicks). Per explicit user decision, this persists after a search too, not just on the pre-search landing view — it's the app's visual identity, not a one-time landing flourish:
 
 ```tsx
-{!hasSubmitted && (
-  <div className="relative overflow-hidden rounded-3xl bg-accent-soft p-6 sm:p-8">
-    <span className="pointer-events-none absolute left-4 top-4 text-2xl opacity-30" aria-hidden="true">🎓</span>
-    <span className="pointer-events-none absolute right-6 top-6 text-xl opacity-25" aria-hidden="true">🏰</span>
-    <span className="pointer-events-none absolute bottom-4 left-10 text-xl opacity-25" aria-hidden="true">🥨</span>
-    <span className="pointer-events-none absolute bottom-6 right-10 text-2xl opacity-30" aria-hidden="true">✈️</span>
-    <span className="pointer-events-none absolute right-1/3 top-1/2 text-lg opacity-20" aria-hidden="true">📚</span>
-    <Header />
-    <ChatQueryBox onSubmit={handleSubmit} isPending={querySearch.isPending} />
-  </div>
-)}
-{hasSubmitted && (
-  <>
-    <Header />
-    <ChatQueryBox onSubmit={handleSubmit} isPending={querySearch.isPending} />
-  </>
-)}
+<div className="relative overflow-hidden rounded-3xl bg-accent-soft p-6 sm:p-8">
+  <span className="pointer-events-none absolute left-4 top-4 text-2xl opacity-30" aria-hidden="true">🎓</span>
+  <span className="pointer-events-none absolute right-6 top-6 text-xl opacity-25" aria-hidden="true">🏰</span>
+  <span className="pointer-events-none absolute bottom-4 left-10 text-xl opacity-25" aria-hidden="true">🥨</span>
+  <span className="pointer-events-none absolute bottom-6 right-10 text-2xl opacity-30" aria-hidden="true">✈️</span>
+  <span className="pointer-events-none absolute right-1/3 top-1/2 text-lg opacity-20" aria-hidden="true">📚</span>
+  <Header />
+  <ChatQueryBox onSubmit={handleSubmit} isPending={querySearch.isPending} />
+</div>
 ```
 
-`Header.tsx` itself gains the mascot emoji above the heading (shown in both states — it's small and cheap, doesn't need to be conditional):
+This replaces the current unconditional `<Header />` + `<ChatQueryBox .../>` pair at the top of `App.tsx`'s render — same two components, same props, just wrapped in the panel now, with no `hasSubmitted` branching. Everything below (extraction summary, results, pagination) is unaffected and keeps its current plain layout.
+
+`Header.tsx` itself gains the mascot emoji above the heading:
 
 ```tsx
 export function Header() {
@@ -295,4 +289,4 @@ Following this project's established pattern (Vitest/RTL with MSW-stubbed endpoi
 - **Feature 1:** a test that paginating to a second page and back to the first does NOT re-issue a `/query` request for the first page's offset (assert the MSW handler's call count, or that a spy on the mutation function isn't called again); a test that an on-demand-evaluated verdict on page 1 survives navigating to page 2 and back.
 - **Feature 2:** tests that `TurboSnailLoader` renders the single `message` text with no stage progression when `message` is provided (advancing fake timers should NOT change the text); a test that `ResultsList` shows the initial-query loader only when `isInitialQueryPending` is true, the pagination loader only when `isPaginationPending` is true, and that `AdmissionGuideDrawer` renders `TurboSnailLoader` (not plain text) while `isLoading`.
 - **Feature 3:** tests that the caption and "Want to see more examples?" label render, and that the caption's text is never included in what `onSubmit` receives.
-- **Feature 4:** a test that `Header`/the decorative panel render only when appropriate (i.e., a test at the `App.tsx` level that the panel/stickers are present before a search and absent after one); a test that typing in the textarea shows the typing indicator and it disappears after the timeout (using fake timers, matching `TurboSnailLoader.test.tsx`'s existing pattern).
+- **Feature 4:** a test that typing in the textarea shows the typing indicator and it disappears after the timeout (using fake timers, matching `TurboSnailLoader.test.tsx`'s existing pattern).
