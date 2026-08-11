@@ -124,10 +124,20 @@ describe("AdmissionGuideDrawer", () => {
     expect(screen.getByText(/a grade of 2.5 or better is required/i)).toBeInTheDocument();
   });
 
-  it("shows an 'Evaluate eligibility' button when the verdict is no_data and a profile exists", () => {
+  const PROGRAM_WITH_ELIGIBILITY_DATA: ProgramDetail = {
+    ...BASE_PROGRAM,
+    structured_eligibility: {
+      requires_gre: null, requires_gmat: null, min_german_level: null, min_english_level: null,
+      extraction_confidence: "high", degree_prerequisite: null, grade_requirement: null,
+      standardized_tests: [], language_requirements: [], notes: null,
+    },
+  };
+
+  it("shows an 'Evaluate eligibility' button when the verdict is no_data, a profile exists, and the program has eligibility data", () => {
     renderDrawer({
       verdict: { eligibility_verdict: "no_data", eligibility_reasoning: null },
       profile: { nationality: "Pakistan" },
+      program: PROGRAM_WITH_ELIGIBILITY_DATA,
     });
     expect(screen.getByRole("button", { name: /evaluate eligibility/i })).toBeInTheDocument();
   });
@@ -136,9 +146,20 @@ describe("AdmissionGuideDrawer", () => {
     renderDrawer({
       verdict: { eligibility_verdict: "no_data", eligibility_reasoning: null },
       profile: null,
+      program: PROGRAM_WITH_ELIGIBILITY_DATA,
     });
     expect(screen.queryByRole("button", { name: /evaluate eligibility/i })).not.toBeInTheDocument();
     expect(screen.getByText(/add your background to the search box to check eligibility/i)).toBeInTheDocument();
+  });
+
+  it("does not show the 'Evaluate eligibility' button when the program has no eligibility data, even with a profile", () => {
+    renderDrawer({
+      verdict: { eligibility_verdict: "no_data", eligibility_reasoning: null },
+      profile: { nationality: "Pakistan" },
+      program: BASE_PROGRAM, // structured_eligibility: null
+    });
+    expect(screen.queryByRole("button", { name: /evaluate eligibility/i })).not.toBeInTheDocument();
+    expect(screen.getByText(/this program doesn't have eligibility data/i)).toBeInTheDocument();
   });
 
   it("clicking 'Evaluate eligibility' calls the endpoint and reports the result via onEligibilityEvaluated", async () => {
@@ -151,6 +172,7 @@ describe("AdmissionGuideDrawer", () => {
     renderDrawer({
       verdict: { eligibility_verdict: "no_data", eligibility_reasoning: null },
       profile: { nationality: "Pakistan" },
+      program: PROGRAM_WITH_ELIGIBILITY_DATA,
       onEligibilityEvaluated,
     });
 
@@ -158,6 +180,25 @@ describe("AdmissionGuideDrawer", () => {
 
     await waitFor(() =>
       expect(onEligibilityEvaluated).toHaveBeenCalledWith(10396, "eligible", "Meets all requirements."),
+    );
+  });
+
+  it("shows an error message when evaluating eligibility fails", async () => {
+    mswServer.use(
+      http.post(`${API_BASE_URL}/programs/10396/evaluate-eligibility`, () =>
+        HttpResponse.json(null, { status: 500 }),
+      ),
+    );
+    renderDrawer({
+      verdict: { eligibility_verdict: "no_data", eligibility_reasoning: null },
+      profile: { nationality: "Pakistan" },
+      program: PROGRAM_WITH_ELIGIBILITY_DATA,
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /evaluate eligibility/i }));
+
+    await waitFor(() =>
+      expect(screen.getByText(/couldn't evaluate eligibility/i)).toBeInTheDocument(),
     );
   });
 

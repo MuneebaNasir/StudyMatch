@@ -76,22 +76,14 @@ export function AdmissionGuideDrawer({
                   >
                     {VERDICT_LABELS[verdict.eligibility_verdict]}
                   </span>
-                  {verdict.eligibility_verdict === "no_data" && hasProfileData(profile) ? (
-                    <div className="mt-1">
-                      <button
-                        type="button"
-                        onClick={handleEvaluate}
-                        disabled={evaluateEligibility.isPending}
-                        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
-                      >
-                        {evaluateEligibility.isPending ? "Evaluating..." : "Evaluate eligibility"}
-                      </button>
-                    </div>
-                  ) : verdict.eligibility_verdict === "no_data" ? (
-                    <p className="mt-1 text-sm text-ink/70">Add your background to the search box to check eligibility</p>
-                  ) : (
-                    <p className="mt-1 text-sm text-ink/70">{verdict.eligibility_reasoning ?? "No reasoning available."}</p>
-                  )}
+                  <EligibilityStatus
+                    verdict={verdict}
+                    profile={profile}
+                    program={program}
+                    onEvaluate={handleEvaluate}
+                    isPending={evaluateEligibility.isPending}
+                    isError={evaluateEligibility.isError}
+                  />
                 </div>
               )}
 
@@ -115,6 +107,43 @@ export function AdmissionGuideDrawer({
         </Dialog.Content>
       </Dialog.Portal>
     </Dialog.Root>
+  );
+}
+
+function EligibilityStatus({
+  verdict, profile, program, onEvaluate, isPending, isError,
+}: {
+  verdict: Pick<QueryResult, "eligibility_verdict" | "eligibility_reasoning">;
+  profile: StudentProfile | null;
+  program: ProgramDetail;
+  onEvaluate: () => void;
+  isPending: boolean;
+  isError: boolean;
+}) {
+  if (verdict.eligibility_verdict !== "no_data") {
+    return <p className="mt-1 text-sm text-ink/70">{verdict.eligibility_reasoning ?? "No reasoning available."}</p>;
+  }
+
+  if (!hasProfileData(profile)) {
+    return <p className="mt-1 text-sm text-ink/70">Add your background to the search box to check eligibility</p>;
+  }
+
+  if (!program.structured_eligibility) {
+    return <p className="mt-1 text-sm text-ink/70">This program doesn't have eligibility data to evaluate against.</p>;
+  }
+
+  return (
+    <div className="mt-1">
+      <button
+        type="button"
+        onClick={onEvaluate}
+        disabled={isPending}
+        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        {isPending ? "Evaluating..." : "Evaluate eligibility"}
+      </button>
+      {isError && <p className="mt-1 text-sm text-red-600">Couldn't evaluate eligibility. Try again.</p>}
+    </div>
   );
 }
 
