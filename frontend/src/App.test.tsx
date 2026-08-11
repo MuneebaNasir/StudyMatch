@@ -66,7 +66,9 @@ describe("App", () => {
 
     renderApp();
 
-    await userEvent.type(screen.getByPlaceholderText(/describe your background/i), "robotics masters, English taught");
+    const textarea = screen.getByRole("textbox");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "robotics masters, English taught");
     await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
 
     expect(await screen.findByText("Robotics Engineering MSc")).toBeInTheDocument();
@@ -114,7 +116,9 @@ describe("App", () => {
 
     renderApp();
 
-    await userEvent.type(screen.getByPlaceholderText(/describe your background/i), "robotics masters");
+    const textarea = screen.getByRole("textbox");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "robotics masters");
     await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
 
     expect(await screen.findByText("Showing 1-20 of 45")).toBeInTheDocument();
@@ -143,7 +147,9 @@ describe("App", () => {
 
     renderApp();
 
-    await userEvent.type(screen.getByPlaceholderText(/describe your background/i), "robotics masters");
+    const textarea = screen.getByRole("textbox");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "robotics masters");
     await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
 
     expect(await screen.findByText(/something went wrong/i)).toBeInTheDocument();
@@ -160,7 +166,9 @@ describe("App", () => {
 
     renderApp();
 
-    await userEvent.type(screen.getByPlaceholderText(/describe your background/i), "robotics masters");
+    const textarea = screen.getByRole("textbox");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "robotics masters");
     await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
     expect(await screen.findByText("Robotics Engineering MSc")).toBeInTheDocument();
 

@@ -5,14 +5,18 @@ import { describe, expect, it, vi } from "vitest";
 import { ChatQueryBox } from "./ChatQueryBox";
 
 describe("ChatQueryBox", () => {
+  it("pre-fills the textarea with the Master's template on load", () => {
+    render(<ChatQueryBox onSubmit={vi.fn()} isPending={false} />);
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toContain("[Master's]");
+  });
+
   it("calls onSubmit with the trimmed query text", async () => {
     const onSubmit = vi.fn();
     render(<ChatQueryBox onSubmit={onSubmit} isPending={false} />);
 
-    await userEvent.type(
-      screen.getByPlaceholderText(/describe your background/i),
-      "  bachelors in AI, CGPA 3.2  ",
-    );
+    const textarea = screen.getByRole("textbox");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "  bachelors in AI, CGPA 3.2  ");
     await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
 
     expect(onSubmit).toHaveBeenCalledWith("bachelors in AI, CGPA 3.2");
@@ -22,7 +26,9 @@ describe("ChatQueryBox", () => {
     const onSubmit = vi.fn();
     render(<ChatQueryBox onSubmit={onSubmit} isPending={false} />);
 
-    await userEvent.type(screen.getByPlaceholderText(/describe your background/i), "   ");
+    const textarea = screen.getByRole("textbox");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "   ");
     await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
 
     expect(onSubmit).not.toHaveBeenCalled();
@@ -30,7 +36,18 @@ describe("ChatQueryBox", () => {
 
   it("disables the submit button and shows loading copy while pending", () => {
     render(<ChatQueryBox onSubmit={vi.fn()} isPending={true} />);
-
     expect(screen.getByRole("button", { name: /reading your profile/i })).toBeDisabled();
+  });
+
+  it("clicking the PhD example chip replaces the textarea content with the PhD template", async () => {
+    render(<ChatQueryBox onSubmit={vi.fn()} isPending={false} />);
+    await userEvent.click(screen.getByRole("button", { name: /phd example/i }));
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toContain("[PhD]");
+  });
+
+  it("clicking the Bachelor's example chip replaces the textarea content with the Bachelor's template", async () => {
+    render(<ChatQueryBox onSubmit={vi.fn()} isPending={false} />);
+    await userEvent.click(screen.getByRole("button", { name: /bachelor's example/i }));
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toContain("[Bachelor's]");
   });
 });
