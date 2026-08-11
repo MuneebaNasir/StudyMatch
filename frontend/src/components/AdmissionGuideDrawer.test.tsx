@@ -54,10 +54,11 @@ describe("AdmissionGuideDrawer", () => {
     expect(screen.getByText(/couldn't load this program/i)).toBeInTheDocument();
   });
 
-  it("falls back to raw_sections when structured_eligibility is null", () => {
+  it("falls back to raw_sections when structured_eligibility is null", async () => {
     renderDrawer({
       program: { ...BASE_PROGRAM, raw_sections: { admission_requirements: "A bachelor's degree with a grade of 2.5 or better." } },
     });
+    await userEvent.click(screen.getByRole("button", { name: /requirements & language/i }));
     expect(screen.getByText(/a bachelor's degree with a grade of 2.5 or better/i)).toBeInTheDocument();
   });
 
@@ -88,7 +89,7 @@ describe("AdmissionGuideDrawer", () => {
     expect(screen.queryByText(/german: null/i)).not.toBeInTheDocument();
   });
 
-  it("shows the original raw program details alongside the structured summary, not instead of it", () => {
+  it("shows the original raw program details alongside the structured summary, not instead of it", async () => {
     renderDrawer({
       program: {
         ...BASE_PROGRAM,
@@ -102,6 +103,7 @@ describe("AdmissionGuideDrawer", () => {
       },
     });
     expect(screen.getByText(/grade requirement: 2.5/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /requirements & language/i }));
     expect(screen.getByText(/a bachelor's degree with a grade of 2.5 or better/i)).toBeInTheDocument();
   });
 
@@ -157,5 +159,34 @@ describe("AdmissionGuideDrawer", () => {
     await waitFor(() =>
       expect(onEligibilityEvaluated).toHaveBeenCalledWith(10396, "eligible", "Meets all requirements."),
     );
+  });
+
+  it("only shows sections that have at least one non-empty field", () => {
+    renderDrawer({
+      program: { ...BASE_PROGRAM, raw_sections: { description: "A great program.", degree: "Master of Science" } },
+    });
+    expect(screen.getByRole("button", { name: /overview/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /course details/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /costs & deadlines/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /requirements & language/i })).not.toBeInTheDocument();
+  });
+
+  it("groups tuition fees and application deadline under Costs & Deadlines", async () => {
+    renderDrawer({
+      program: { ...BASE_PROGRAM, raw_sections: { tuition_fees: "No tuition fees.", application_deadline: "15 July" } },
+    });
+    await userEvent.click(screen.getByRole("button", { name: /costs & deadlines/i }));
+    expect(screen.getByText("No tuition fees.")).toBeInTheDocument();
+    expect(screen.getByText("15 July")).toBeInTheDocument();
+  });
+
+  it("shows the 'no admission text available' message when raw_sections is empty", () => {
+    renderDrawer({ program: { ...BASE_PROGRAM, raw_sections: {} } });
+    expect(screen.getByText(/no admission text available/i)).toBeInTheDocument();
+  });
+
+  it("shows the 'Original program details' heading more prominently than a plain label", () => {
+    renderDrawer({ program: { ...BASE_PROGRAM, raw_sections: { description: "A great program." } } });
+    expect(screen.getByText("Original program details").className).toContain("font-semibold");
   });
 });

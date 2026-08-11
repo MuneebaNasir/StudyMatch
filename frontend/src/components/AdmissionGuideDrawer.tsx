@@ -1,5 +1,6 @@
+import * as Accordion from "@radix-ui/react-accordion";
 import * as Dialog from "@radix-ui/react-dialog";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 
 import { useEvaluateEligibility } from "../hooks/useEvaluateEligibility";
 import { VERDICT_LABELS, VERDICT_STYLES } from "../lib/verdictDisplay";
@@ -104,8 +105,8 @@ export function AdmissionGuideDrawer({
               )}
 
               <div>
-                <h3 className="text-sm font-medium text-ink">Original program details</h3>
-                <div className="mt-1">
+                <h3 className="text-base font-semibold text-ink">Original program details</h3>
+                <div className="mt-2">
                   <RawAdmissionText rawSections={program.raw_sections} />
                 </div>
               </div>
@@ -160,19 +161,67 @@ function RequirementRow({ label, quote }: { label: string; quote: string | null 
   );
 }
 
+interface RawSectionField {
+  key: string;
+  label: string;
+}
+
+interface RawSectionGroup {
+  key: string;
+  title: string;
+  fields: RawSectionField[];
+}
+
+const RAW_SECTION_GROUPS: RawSectionGroup[] = [
+  { key: "overview", title: "Overview", fields: [{ key: "description", label: "Description" }] },
+  { key: "course-details", title: "Course Details", fields: [{ key: "degree", label: "Degree" }] },
+  {
+    key: "costs-deadlines", title: "Costs & Deadlines",
+    fields: [
+      { key: "tuition_fees", label: "Tuition Fees" },
+      { key: "application_deadline", label: "Application Deadline" },
+    ],
+  },
+  {
+    key: "requirements-language", title: "Requirements & Language",
+    fields: [
+      { key: "admission_requirements", label: "Admission Requirements" },
+      { key: "german_language", label: "German Language" },
+      { key: "english_language", label: "English Language" },
+    ],
+  },
+];
+
 function RawAdmissionText({ rawSections }: { rawSections: Record<string, string> }) {
-  const sections = Object.entries(rawSections).filter(([, text]) => text);
-  if (sections.length === 0) {
+  const groups = RAW_SECTION_GROUPS.map((group) => ({
+    ...group,
+    fields: group.fields.filter((field) => rawSections[field.key]),
+  })).filter((group) => group.fields.length > 0);
+
+  if (groups.length === 0) {
     return <p className="text-sm text-ink/70">No admission text available for this program.</p>;
   }
+
   return (
-    <div className="space-y-3">
-      {sections.map(([key, text]) => (
-        <div key={key}>
-          <h4 className="text-xs font-medium uppercase text-ink/40">{key.replace(/_/g, " ")}</h4>
-          <p className="text-sm text-ink/80">{text}</p>
-        </div>
+    <Accordion.Root type="multiple" className="space-y-2">
+      {groups.map((group) => (
+        <Accordion.Item key={group.key} value={group.key} className="rounded-lg border border-line">
+          <Accordion.Header>
+            <Accordion.Trigger className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-ink">
+              {group.title}
+              <ChevronDown size={16} className="text-ink/40 transition-transform data-[state=open]:rotate-180" />
+            </Accordion.Trigger>
+          </Accordion.Header>
+          <Accordion.Content className="space-y-3 px-3 pb-3">
+            {group.fields.map((field) => (
+              <div key={field.key}>
+                <h4 className="text-xs font-medium uppercase text-ink/40">{field.label}</h4>
+                <p className="text-sm text-ink/80">{rawSections[field.key]}</p>
+              </div>
+            ))}
+          </Accordion.Content>
+        </Accordion.Item>
       ))}
-    </div>
+    </Accordion.Root>
   );
 }

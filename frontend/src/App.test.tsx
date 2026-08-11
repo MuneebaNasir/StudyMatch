@@ -81,6 +81,7 @@ describe("App", () => {
 
     await userEvent.click(screen.getByText("Robotics Engineering MSc"));
 
+    await userEvent.click(await screen.findByRole("button", { name: /requirements & language/i }));
     expect(await screen.findByText(/a grade of 2.5 or better is required/i)).toBeInTheDocument();
     expect(
       within(screen.getByText("Eligibility").parentElement as HTMLElement).getByText(/meets the grade threshold/i),
