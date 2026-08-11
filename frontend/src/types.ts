@@ -47,6 +47,11 @@ export interface QueryResponse {
   semantic_query: string | null;
 }
 
+export interface EvaluateEligibilityResponse {
+  eligibility_verdict: EligibilityVerdictValue;
+  eligibility_reasoning: string | null;
+}
+
 export interface SubScore {
   section: string;
   min_score: number | null;

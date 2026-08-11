@@ -1,21 +1,43 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { X } from "lucide-react";
 
+import { useEvaluateEligibility } from "../hooks/useEvaluateEligibility";
 import { VERDICT_LABELS, VERDICT_STYLES } from "../lib/verdictDisplay";
-import type { ProgramDetail, QueryResult } from "../types";
+import type { EligibilityVerdictValue, ProgramDetail, QueryResult, StudentProfile } from "../types";
 
 interface AdmissionGuideDrawerProps {
   programId: number | null;
   verdict: Pick<QueryResult, "eligibility_verdict" | "eligibility_reasoning"> | null;
+  profile: StudentProfile | null;
   program: ProgramDetail | undefined;
   isLoading: boolean;
   isError: boolean;
   onClose: () => void;
+  onEligibilityEvaluated: (programId: number, verdict: EligibilityVerdictValue, reasoning: string | null) => void;
+}
+
+function hasProfileData(profile: StudentProfile | null): boolean {
+  if (!profile) return false;
+  return Object.values(profile).some((value) => value !== null && value !== undefined);
 }
 
 export function AdmissionGuideDrawer({
-  programId, verdict, program, isLoading, isError, onClose,
+  programId, verdict, profile, program, isLoading, isError, onClose, onEligibilityEvaluated,
 }: AdmissionGuideDrawerProps) {
+  const evaluateEligibility = useEvaluateEligibility();
+
+  function handleEvaluate() {
+    if (programId === null || !profile) return;
+    evaluateEligibility.mutate(
+      { programId, profile },
+      {
+        onSuccess: (response) => {
+          onEligibilityEvaluated(programId, response.eligibility_verdict, response.eligibility_reasoning);
+        },
+      },
+    );
+  }
+
   return (
     <Dialog.Root open={programId !== null} onOpenChange={(open) => !open && onClose()}>
       <Dialog.Portal>
@@ -53,12 +75,32 @@ export function AdmissionGuideDrawer({
                   >
                     {VERDICT_LABELS[verdict.eligibility_verdict]}
                   </span>
-                  <p className="mt-1 text-sm text-ink/70">{verdict.eligibility_reasoning ?? "No reasoning available."}</p>
+                  {verdict.eligibility_verdict === "no_data" && hasProfileData(profile) ? (
+                    <div className="mt-1">
+                      <button
+                        type="button"
+                        onClick={handleEvaluate}
+                        disabled={evaluateEligibility.isPending}
+                        className="rounded-lg bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent/90 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        {evaluateEligibility.isPending ? "Evaluating..." : "Evaluate eligibility"}
+                      </button>
+                    </div>
+                  ) : verdict.eligibility_verdict === "no_data" ? (
+                    <p className="mt-1 text-sm text-ink/70">Add your background to the search box to check eligibility</p>
+                  ) : (
+                    <p className="mt-1 text-sm text-ink/70">{verdict.eligibility_reasoning ?? "No reasoning available."}</p>
+                  )}
                 </div>
               )}
 
               {program.structured_eligibility && (
-                <StructuredAdmissionGuide eligibility={program.structured_eligibility} />
+                <div>
+                  <h3 className="text-sm font-medium text-ink">Admission Requirements</h3>
+                  <div className="mt-1">
+                    <StructuredAdmissionGuide eligibility={program.structured_eligibility} />
+                  </div>
+                </div>
               )}
 
               <div>

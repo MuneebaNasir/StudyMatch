@@ -1,4 +1,6 @@
-import type { ProgramDetail, QueryResponse, SearchFilters, SearchResponse } from "../types";
+import type {
+  EvaluateEligibilityResponse, ProgramDetail, QueryResponse, SearchFilters, SearchResponse, StudentProfile,
+} from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
@@ -31,4 +33,13 @@ export function postSearch(
 
 export function getProgram(id: number): Promise<ProgramDetail> {
   return request<ProgramDetail>(`/programs/${id}`);
+}
+
+export function postEvaluateEligibility(
+  programId: number, profile: StudentProfile,
+): Promise<EvaluateEligibilityResponse> {
+  return request<EvaluateEligibilityResponse>(`/programs/${programId}/evaluate-eligibility`, {
+    method: "POST",
+    body: JSON.stringify({ profile }),
+  });
 }

@@ -5,6 +5,7 @@ import type { PropsWithChildren } from "react";
 import { describe, expect, it } from "vitest";
 
 import { mswServer } from "../test/mswServer";
+import { useEvaluateEligibility } from "./useEvaluateEligibility";
 import { useFilteredSearch } from "./useFilteredSearch";
 import { useProgramDetail } from "./useProgramDetail";
 import { useQuerySearch } from "./useQuerySearch";
@@ -99,5 +100,23 @@ describe("useProgramDetail", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.course_name).toBe("Additive Manufacturing");
+  });
+});
+
+describe("useEvaluateEligibility", () => {
+  it("posts the profile to the program's evaluate-eligibility endpoint", async () => {
+    mswServer.use(
+      http.post(`${API_BASE_URL}/programs/10396/evaluate-eligibility`, async ({ request }) => {
+        const body = (await request.json()) as { profile: { nationality: string } };
+        expect(body.profile.nationality).toBe("Pakistan");
+        return HttpResponse.json({ eligibility_verdict: "eligible", eligibility_reasoning: "Meets requirements." });
+      }),
+    );
+    const { result } = renderHook(() => useEvaluateEligibility(), { wrapper });
+
+    const response = await result.current.mutateAsync({
+      programId: 10396, profile: { nationality: "Pakistan" },
+    });
+    expect(response.eligibility_verdict).toBe("eligible");
   });
 });

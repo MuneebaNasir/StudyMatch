@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { AdmissionGuideDrawer } from "./components/AdmissionGuideDrawer";
 import { ChatQueryBox } from "./components/ChatQueryBox";
@@ -10,7 +10,7 @@ import { useFilteredSearch } from "./hooks/useFilteredSearch";
 import { useProgramDetail } from "./hooks/useProgramDetail";
 import { useQuerySearch } from "./hooks/useQuerySearch";
 import { buildVerdictMap, mergeVerdicts, type VerdictInfo } from "./lib/mergeVerdicts";
-import type { QueryResponse, QueryResult, SearchFilters } from "./types";
+import type { EligibilityVerdictValue, QueryResponse, SearchFilters, SearchResult } from "./types";
 
 const PAGE_SIZE = 20;
 
@@ -31,7 +31,7 @@ function ErrorBanner({ onRetry }: { onRetry: () => void }) {
 
 export default function App() {
   const [queryResponse, setQueryResponse] = useState<QueryResponse | null>(null);
-  const [displayedResults, setDisplayedResults] = useState<QueryResult[]>([]);
+  const [displayedResults, setDisplayedResults] = useState<SearchResult[]>([]);
   const [activeFilters, setActiveFilters] = useState<SearchFilters | null>(null);
   const [verdictMap, setVerdictMap] = useState<Map<number, VerdictInfo>>(new Map());
   const [selectedProgramId, setSelectedProgramId] = useState<number | null>(null);
@@ -42,6 +42,11 @@ export default function App() {
   const querySearch = useQuerySearch();
   const filteredSearch = useFilteredSearch();
   const programDetail = useProgramDetail(selectedProgramId);
+
+  const resultsForDisplay = useMemo(
+    () => mergeVerdicts(displayedResults, verdictMap),
+    [displayedResults, verdictMap],
+  );
 
   function runQuerySearch(query: string, offset: number) {
     setActiveQuery({ type: "query", query });
@@ -68,7 +73,7 @@ export default function App() {
       { filters, semanticQuery, offset },
       {
         onSuccess: (response) => {
-          setDisplayedResults(mergeVerdicts(response.results, verdictMap));
+          setDisplayedResults(response.results);
           setTotalMatched(response.total_matched);
         },
         onError: () => {
@@ -110,6 +115,16 @@ export default function App() {
     setTotalMatched(0);
     querySearch.reset();
     filteredSearch.reset();
+  }
+
+  function handleEligibilityEvaluated(
+    programId: number, verdict: EligibilityVerdictValue, reasoning: string | null,
+  ) {
+    setVerdictMap((previous) => {
+      const next = new Map(previous);
+      next.set(programId, { verdict, reasoning });
+      return next;
+    });
   }
 
   const hasSubmitted = querySearch.isPending || queryResponse !== null;
@@ -165,7 +180,7 @@ export default function App() {
           )}
 
           <ResultsList
-            results={displayedResults}
+            results={resultsForDisplay}
             isLoading={querySearch.isPending || filteredSearch.isPending}
             onSelectProgram={setSelectedProgramId}
           />
@@ -177,10 +192,12 @@ export default function App() {
       <AdmissionGuideDrawer
         programId={selectedProgramId}
         verdict={selectedVerdict}
+        profile={queryResponse?.extracted_profile ?? null}
         program={programDetail.data}
         isLoading={programDetail.isLoading}
         isError={programDetail.isError}
         onClose={() => setSelectedProgramId(null)}
+        onEligibilityEvaluated={handleEligibilityEvaluated}
       />
     </main>
   );
