@@ -5,3 +5,20 @@
 body {
   @apply bg-background text-ink;
 }
+
+@keyframes snail-1 {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(2px); }
+}
+@keyframes snail-2 {
+  0%, 100% { transform: translateX(-2px); }
+  50% { transform: translateX(3px); }
+}
+@keyframes snail-3 {
+  0%, 100% { transform: translateX(-4px); }
+  50% { transform: translateX(4px); }
+}
+
+.animate-snail-1 { animation: snail-1 1.2s ease-in-out infinite; }
+.animate-snail-2 { animation: snail-2 0.6s ease-in-out infinite; }
+.animate-snail-3 { animation: snail-3 0.3s ease-in-out infinite; }

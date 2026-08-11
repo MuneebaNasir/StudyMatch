@@ -1,13 +1,19 @@
 import type { QueryResult } from "../types";
 import { ResultCard } from "./ResultCard";
+import { TurboSnailLoader } from "./TurboSnailLoader";
 
 interface ResultsListProps {
   results: QueryResult[];
   isLoading: boolean;
+  isQueryPending: boolean;
   onSelectProgram: (id: number) => void;
 }
 
-export function ResultsList({ results, isLoading, onSelectProgram }: ResultsListProps) {
+export function ResultsList({ results, isLoading, isQueryPending, onSelectProgram }: ResultsListProps) {
+  if (isQueryPending) {
+    return <TurboSnailLoader />;
+  }
+
   if (isLoading) {
     return (
       <div className="space-y-3" data-testid="results-loading">

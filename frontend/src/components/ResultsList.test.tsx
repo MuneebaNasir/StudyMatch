@@ -13,19 +13,24 @@ const RESULT: QueryResult = {
 };
 
 describe("ResultsList", () => {
-  it("shows a loading skeleton while isLoading is true", () => {
-    render(<ResultsList results={[]} isLoading={true} onSelectProgram={vi.fn()} />);
+  it("shows the turbo-snail loader when isQueryPending is true, regardless of isLoading", () => {
+    render(<ResultsList results={[]} isLoading={false} isQueryPending={true} onSelectProgram={vi.fn()} />);
+    expect(screen.getByTestId("turbo-snail-loader")).toBeInTheDocument();
+  });
+
+  it("shows a loading skeleton while isLoading is true and isQueryPending is false", () => {
+    render(<ResultsList results={[]} isLoading={true} isQueryPending={false} onSelectProgram={vi.fn()} />);
     expect(screen.getByTestId("results-loading")).toBeInTheDocument();
   });
 
   it("shows the empty state when there are no results", () => {
-    render(<ResultsList results={[]} isLoading={false} onSelectProgram={vi.fn()} />);
+    render(<ResultsList results={[]} isLoading={false} isQueryPending={false} onSelectProgram={vi.fn()} />);
     expect(screen.getByText(/no programs matched/i)).toBeInTheDocument();
   });
 
   it("renders a card per result with its verdict badge, and calls onSelectProgram when clicked", async () => {
     const onSelectProgram = vi.fn();
-    render(<ResultsList results={[RESULT]} isLoading={false} onSelectProgram={onSelectProgram} />);
+    render(<ResultsList results={[RESULT]} isLoading={false} isQueryPending={false} onSelectProgram={onSelectProgram} />);
 
     expect(screen.getByText("Robotics MSc")).toBeInTheDocument();
     expect(screen.getByText("Eligible")).toBeInTheDocument();
