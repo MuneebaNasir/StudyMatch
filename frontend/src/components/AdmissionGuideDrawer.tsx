@@ -153,10 +153,11 @@ function StructuredAdmissionGuide({
 }
 
 function RequirementRow({ label, quote }: { label: string; quote: string | null }) {
+  const showQuote = quote && quote.trim() !== label.trim();
   return (
     <div className="rounded-lg border border-line p-3">
       <p className="text-sm font-medium text-ink">{label}</p>
-      {quote && <p className="mt-1 text-xs italic text-ink/70">"{quote}"</p>}
+      {showQuote && <p className="mt-1 text-xs italic text-ink/70">"{quote}"</p>}
     </div>
   );
 }

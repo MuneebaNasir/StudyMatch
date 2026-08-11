@@ -189,4 +189,41 @@ describe("AdmissionGuideDrawer", () => {
     renderDrawer({ program: { ...BASE_PROGRAM, raw_sections: { description: "A great program." } } });
     expect(screen.getByText("Original program details").className).toContain("font-semibold");
   });
+
+  it("omits the quote block in a requirement row when the quote is identical to the label", () => {
+    renderDrawer({
+      program: {
+        ...BASE_PROGRAM,
+        structured_eligibility: {
+          requires_gre: null, requires_gmat: null, min_german_level: null, min_english_level: null,
+          extraction_confidence: "high",
+          degree_prerequisite: {
+            description: "A relevant bachelor's degree is required.",
+            source_quote: "A relevant bachelor's degree is required.",
+          },
+          grade_requirement: null, standardized_tests: [], language_requirements: [], notes: null,
+        },
+      },
+    });
+    expect(screen.getAllByText(/a relevant bachelor's degree is required/i)).toHaveLength(1);
+  });
+
+  it("still shows the quote in a requirement row when it differs from the label", () => {
+    renderDrawer({
+      program: {
+        ...BASE_PROGRAM,
+        structured_eligibility: {
+          requires_gre: null, requires_gmat: null, min_german_level: null, min_english_level: null,
+          extraction_confidence: "high",
+          degree_prerequisite: {
+            description: "A relevant bachelor's degree is required.",
+            source_quote: "Applicants must hold a bachelor's degree in a related field.",
+          },
+          grade_requirement: null, standardized_tests: [], language_requirements: [], notes: null,
+        },
+      },
+    });
+    expect(screen.getByText(/a relevant bachelor's degree is required/i)).toBeInTheDocument();
+    expect(screen.getByText(/applicants must hold a bachelor's degree in a related field/i)).toBeInTheDocument();
+  });
 });
