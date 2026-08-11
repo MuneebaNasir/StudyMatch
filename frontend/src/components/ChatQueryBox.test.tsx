@@ -1,6 +1,6 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ChatQueryBox } from "./ChatQueryBox";
 
@@ -70,5 +70,38 @@ describe("ChatQueryBox", () => {
     expect(onSubmit).toHaveBeenCalled();
     const submittedQuery = onSubmit.mock.calls[0][0] as string;
     expect(submittedQuery).not.toContain("Example query");
+  });
+});
+
+describe("ChatQueryBox typing indicator", () => {
+  beforeEach(() => {
+    // shouldAdvanceTime: true (not just plain vi.useFakeTimers()) is required here:
+    // @testing-library/react's asyncWrapper drains microtasks via a real setTimeout(0)
+    // internally, but only detects and advances *Jest's* fake timers, not Vitest's. Without
+    // shouldAdvanceTime, that setTimeout(0) is faked and never fires, and any `userEvent`
+    // call (even with delay: null) hangs indefinitely. shouldAdvanceTime lets the fake
+    // clock auto-advance in step with real time for that pending callback, while
+    // vi.advanceTimersByTime() below still jumps the clock forward explicitly.
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("shows the typing indicator while the user is actively typing, then fades it out after a pause", async () => {
+    const user = userEvent.setup({ delay: null });
+    render(<ChatQueryBox onSubmit={vi.fn()} isPending={false} />);
+
+    const textarea = screen.getByRole("textbox");
+    await user.type(textarea, "a");
+
+    expect(screen.getByText("🐌 typing...")).toHaveClass("opacity-100");
+
+    act(() => {
+      vi.advanceTimersByTime(1500);
+    });
+
+    expect(screen.getByText("🐌 typing...")).toHaveClass("opacity-0");
   });
 });

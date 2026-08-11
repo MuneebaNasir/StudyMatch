@@ -1,4 +1,4 @@
-import { type FormEvent, useState } from "react";
+import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from "react";
 
 const MASTERS_TEMPLATE = `I am looking for a [Master's] program in [AI, agentic AI, and large language models], taught in [English], with [no tuition fees], near [Berlin].
 
@@ -19,6 +19,21 @@ interface ChatQueryBoxProps {
 
 export function ChatQueryBox({ onSubmit, isPending }: ChatQueryBoxProps) {
   const [query, setQuery] = useState(MASTERS_TEMPLATE);
+  const [isTyping, setIsTyping] = useState(false);
+  const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleChange(event: ChangeEvent<HTMLTextAreaElement>) {
+    setQuery(event.target.value);
+    setIsTyping(true);
+    if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    typingTimeoutRef.current = setTimeout(() => setIsTyping(false), 1500);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+    };
+  }, []);
 
   function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -35,10 +50,16 @@ export function ChatQueryBox({ onSubmit, isPending }: ChatQueryBoxProps) {
       <p className="text-xs text-ink/50">Example query — edit the details below to match your own background.</p>
       <textarea
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={handleChange}
         rows={5}
         className="resize-none rounded-lg border border-line p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
       />
+      <p
+        className={`text-xs text-ink/40 transition-opacity duration-300 ${isTyping ? "opacity-100" : "opacity-0"}`}
+        aria-hidden="true"
+      >
+        🐌 typing...
+      </p>
       <p className="text-xs font-medium text-ink/50">Want to see more examples?</p>
       <div className="flex flex-wrap gap-2">
         <button
