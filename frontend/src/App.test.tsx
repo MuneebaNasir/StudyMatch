@@ -289,4 +289,51 @@ describe("App", () => {
     expect(screen.getByText("Eligible")).toBeInTheDocument();
     expect(page0Calls).toBe(1);
   });
+
+  it("re-fetches offset 0 for a genuinely new search instead of returning the previous query's cached page", async () => {
+    let callCount = 0;
+    mswServer.use(
+      http.post(`${API_BASE_URL}/query`, async () => {
+        callCount += 1;
+        if (callCount === 1) {
+          return HttpResponse.json({
+            results: [{
+              id: 1, course_name: "Robotics Engineering MSc", university: "TU Berlin", city: "Berlin",
+              languages: ["English"], subject: null, tuition_fees_text: null, application_deadline_text: null,
+              link: "https://example.com/1", score: 0.9, eligibility_verdict: "no_data" as const, eligibility_reasoning: null,
+            }],
+            total_matched: 1,
+            extracted_filters: null, extracted_profile: null, semantic_query: null,
+          });
+        }
+        return HttpResponse.json({
+          results: [{
+            id: 2, course_name: "Data Science MSc", university: "TU Munich", city: "Munich",
+            languages: ["English"], subject: null, tuition_fees_text: null, application_deadline_text: null,
+            link: "https://example.com/2", score: 0.8, eligibility_verdict: "no_data" as const, eligibility_reasoning: null,
+          }],
+          total_matched: 1,
+          extracted_filters: null, extracted_profile: null, semantic_query: null,
+        });
+      }),
+    );
+
+    renderApp();
+
+    const textarea = screen.getByRole("textbox");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "robotics masters");
+    await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
+
+    expect(await screen.findByText("Robotics Engineering MSc")).toBeInTheDocument();
+    expect(callCount).toBe(1);
+
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "data science masters");
+    await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
+
+    expect(await screen.findByText("Data Science MSc")).toBeInTheDocument();
+    expect(screen.queryByText("Robotics Engineering MSc")).not.toBeInTheDocument();
+    expect(callCount).toBe(2);
+  });
 });

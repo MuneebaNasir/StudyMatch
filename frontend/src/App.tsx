@@ -49,9 +49,9 @@ export default function App() {
     [displayedResults, verdictMap],
   );
 
-  function runQuerySearch(query: string, offset: number) {
+  function runQuerySearch(query: string, offset: number, options: { skipCache?: boolean } = {}) {
     setActiveQuery({ type: "query", query });
-    const cached = pageCache.get(offset);
+    const cached = options.skipCache ? undefined : pageCache.get(offset);
     if (cached) {
       setQueryResponse(cached);
       setDisplayedResults(cached.results);
@@ -111,7 +111,11 @@ export default function App() {
   function handleSubmit(query: string) {
     setOffset(0);
     setPageCache(new Map());
-    runQuerySearch(query, 0);
+    // skipCache: true because setPageCache above only schedules a
+    // re-render — pageCache in this closure is still the pre-clear map
+    // from the current render, so without skipCache a second distinct
+    // search could hit a stale cache entry from the previous query.
+    runQuerySearch(query, 0, { skipCache: true });
   }
 
   function handleFiltersChange(filters: SearchFilters) {
