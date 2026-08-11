@@ -8,17 +8,17 @@ body {
 
 @keyframes snail-1 {
   0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(2px); }
+  50% { transform: translateX(24px); }
 }
 @keyframes snail-2 {
-  0%, 100% { transform: translateX(-2px); }
-  50% { transform: translateX(3px); }
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(32px); }
 }
 @keyframes snail-3 {
-  0%, 100% { transform: translateX(-4px); }
-  50% { transform: translateX(4px); }
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(40px); }
 }
 
-.animate-snail-1 { animation: snail-1 1.2s ease-in-out infinite; }
-.animate-snail-2 { animation: snail-2 0.6s ease-in-out infinite; }
-.animate-snail-3 { animation: snail-3 0.3s ease-in-out infinite; }
+.animate-snail-1 { animation: snail-1 1.4s ease-in-out infinite; }
+.animate-snail-2 { animation: snail-2 0.9s ease-in-out infinite; }
+.animate-snail-3 { animation: snail-3 0.5s ease-in-out infinite; }

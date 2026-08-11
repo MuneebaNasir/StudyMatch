@@ -5,6 +5,7 @@ import { ChevronDown, X } from "lucide-react";
 import { useEvaluateEligibility } from "../hooks/useEvaluateEligibility";
 import { VERDICT_LABELS, VERDICT_STYLES } from "../lib/verdictDisplay";
 import type { EligibilityVerdictValue, ProgramDetail, QueryResult, StudentProfile } from "../types";
+import { TurboSnailLoader } from "./TurboSnailLoader";
 
 interface AdmissionGuideDrawerProps {
   programId: number | null;
@@ -55,7 +56,7 @@ export function AdmissionGuideDrawer({
           </Dialog.Description>
 
           {isError && <p className="text-sm text-red-600">Couldn't load this program's details.</p>}
-          {isLoading && <p className="text-sm text-ink/70">Loading...</p>}
+          {isLoading && <TurboSnailLoader message="Fetching program details..." />}
 
           {!isLoading && !isError && program && (
             <div className="space-y-4">

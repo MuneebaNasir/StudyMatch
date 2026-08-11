@@ -212,7 +212,8 @@ export default function App() {
           <ResultsList
             results={resultsForDisplay}
             isLoading={filteredSearch.isPending}
-            isQueryPending={querySearch.isPending}
+            isInitialQueryPending={querySearch.isPending && offset === 0}
+            isPaginationPending={querySearch.isPending && offset > 0}
             onSelectProgram={setSelectedProgramId}
           />
 

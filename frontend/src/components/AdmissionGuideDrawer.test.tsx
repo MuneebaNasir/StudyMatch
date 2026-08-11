@@ -46,7 +46,7 @@ describe("AdmissionGuideDrawer", () => {
 
   it("shows the loading state", () => {
     renderDrawer({ program: undefined, isLoading: true });
-    expect(screen.getByText(/loading/i)).toBeInTheDocument();
+    expect(screen.getByText("Fetching program details...")).toBeInTheDocument();
   });
 
   it("shows the error state", () => {

@@ -5,13 +5,20 @@ import { TurboSnailLoader } from "./TurboSnailLoader";
 interface ResultsListProps {
   results: QueryResult[];
   isLoading: boolean;
-  isQueryPending: boolean;
+  isInitialQueryPending: boolean;
+  isPaginationPending: boolean;
   onSelectProgram: (id: number) => void;
 }
 
-export function ResultsList({ results, isLoading, isQueryPending, onSelectProgram }: ResultsListProps) {
-  if (isQueryPending) {
+export function ResultsList({
+  results, isLoading, isInitialQueryPending, isPaginationPending, onSelectProgram,
+}: ResultsListProps) {
+  if (isInitialQueryPending) {
     return <TurboSnailLoader />;
+  }
+
+  if (isPaginationPending) {
+    return <TurboSnailLoader message="Loading next page..." />;
   }
 
   if (isLoading) {
