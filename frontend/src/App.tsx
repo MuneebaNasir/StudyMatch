@@ -53,6 +53,7 @@ export default function App() {
     setActiveQuery({ type: "query", query });
     const cached = options.skipCache ? undefined : pageCache.get(offset);
     if (cached) {
+      if (querySearch.isError) querySearch.reset();
       setQueryResponse(cached);
       setDisplayedResults(cached.results);
       setActiveFilters(cached.extracted_filters);
@@ -165,7 +166,7 @@ export default function App() {
 
   return (
     <main className="mx-auto max-w-3xl space-y-6 p-6">
-      <div className="relative overflow-hidden rounded-3xl bg-accent-soft p-6 sm:p-8">
+      <div className="relative overflow-hidden rounded-3xl bg-accent-soft p-6 sm:p-8 space-y-4">
         <span className="pointer-events-none absolute left-4 top-4 text-2xl opacity-30" aria-hidden="true">🎓</span>
         <span className="pointer-events-none absolute right-6 top-6 text-xl opacity-25" aria-hidden="true">🏰</span>
         <span className="pointer-events-none absolute bottom-4 left-10 text-xl opacity-25" aria-hidden="true">🥨</span>

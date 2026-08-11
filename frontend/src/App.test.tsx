@@ -214,6 +214,46 @@ describe("App", () => {
     expect(offsetCalls).toEqual([0, 20]);
   });
 
+  it("clears a stale error banner when navigating back to an already-cached page", async () => {
+    let page20Attempts = 0;
+    mswServer.use(
+      http.post(`${API_BASE_URL}/query`, async ({ request }) => {
+        const body = (await request.json()) as { offset: number };
+        if (body.offset === 20) {
+          page20Attempts += 1;
+          return HttpResponse.json(null, { status: 500 });
+        }
+        return HttpResponse.json({
+          results: [{
+            id: 1, course_name: "Robotics Engineering MSc", university: "TU Berlin", city: "Berlin",
+            languages: ["English"], subject: null, tuition_fees_text: null, application_deadline_text: null,
+            link: "https://example.com/1", score: 0.9, eligibility_verdict: "no_data" as const, eligibility_reasoning: null,
+          }],
+          total_matched: 45,
+          extracted_filters: null, extracted_profile: null, semantic_query: null,
+        });
+      }),
+    );
+
+    renderApp();
+
+    const textarea = screen.getByRole("textbox");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "robotics masters");
+    await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
+
+    expect(await screen.findByText("Robotics Engineering MSc")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /next/i }));
+    expect(await screen.findByText(/something went wrong/i)).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /previous/i }));
+
+    expect(await screen.findByText("Robotics Engineering MSc")).toBeInTheDocument();
+    expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+    expect(page20Attempts).toBe(1);
+  });
+
   it("keeps an on-demand-evaluated verdict after paginating away and back", async () => {
     let page0Calls = 0;
     mswServer.use(
