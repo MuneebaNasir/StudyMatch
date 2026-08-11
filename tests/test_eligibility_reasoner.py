@@ -1,4 +1,6 @@
 # tests/test_eligibility_reasoner.py
+import logging
+
 import pytest
 
 from daad_search.query_understanding.reasoner import (
@@ -7,7 +9,12 @@ from daad_search.query_understanding.reasoner import (
     detect_grade_scale,
     reason_about_eligibility,
 )
-from daad_search.query_understanding.schema import CandidateForReasoning, StudentProfile
+from daad_search.query_understanding.schema import (
+    BatchEligibilityReasoning,
+    CandidateForReasoning,
+    EligibilityVerdict,
+    StudentProfile,
+)
 
 
 def test_build_reasoning_prompt_includes_profile_and_candidates():
@@ -101,7 +108,7 @@ def test_reason_about_eligibility_returns_none_when_all_providers_fail(monkeypat
     from daad_search.query_understanding import reasoner as reasoner_module
 
     class AlwaysFailsChain:
-        def invoke(self, prompt):
+        def invoke(self, prompt, config=None):
             raise RuntimeError("all providers exhausted")
 
     monkeypatch.setattr(reasoner_module, "get_fallback_llm", lambda schema: AlwaysFailsChain())
@@ -110,6 +117,32 @@ def test_reason_about_eligibility_returns_none_when_all_providers_fail(monkeypat
         CandidateForReasoning(program_id=1, course_name="Test", structured_eligibility={}),
     ]
     assert reason_about_eligibility(StudentProfile(), candidates) is None
+
+
+def test_reason_about_eligibility_logs_one_eligibility_record_per_verdict(monkeypatch, caplog):
+    from daad_search.query_understanding import reasoner as reasoner_module
+
+    class FakeChain:
+        def invoke(self, prompt, config=None):
+            return BatchEligibilityReasoning(verdicts=[
+                EligibilityVerdict(program_id=10396, verdict="eligible", reasoning="Meets requirements."),
+            ])
+
+    monkeypatch.setattr(reasoner_module, "get_fallback_llm", lambda schema: FakeChain())
+
+    candidates = [
+        CandidateForReasoning(
+            program_id=10396, course_name="Additive Manufacturing",
+            structured_eligibility={"grade_requirement": {"value": 2.5}},
+        ),
+    ]
+
+    with caplog.at_level(logging.INFO, logger="daad_search.query_understanding.reasoner"):
+        reason_about_eligibility(StudentProfile(nationality="Pakistan"), candidates)
+
+    eligibility_logs = [r.getMessage() for r in caplog.records if "ELIGIBILITY" in r.getMessage()]
+    assert len(eligibility_logs) == 1
+    assert "10396" in eligibility_logs[0]
 
 
 @pytest.mark.integration

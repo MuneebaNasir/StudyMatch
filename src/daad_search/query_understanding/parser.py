@@ -1,7 +1,7 @@
 # src/daad_search/query_understanding/parser.py
 import logging
 
-from .llm import get_fallback_llm
+from .llm import ModelNameCapture, get_fallback_llm
 from .schema import ParsedQuery
 
 logger = logging.getLogger(__name__)
@@ -36,8 +36,18 @@ def build_query_prompt(query: str) -> str:
 
 def parse_query(query: str) -> ParsedQuery | None:
     prompt = build_query_prompt(query)
+    capture = ModelNameCapture()
     try:
-        return get_fallback_llm(ParsedQuery).invoke(prompt)
+        parsed = get_fallback_llm(ParsedQuery).invoke(prompt, config={"callbacks": [capture]})
     except Exception:
         logger.exception("Failed to parse query across all LLM providers: %r", query)
         return None
+    logger.info(
+        "QUERY    raw_query=%r model=%s\n"
+        "         filters=%s semantic_query=%r\n"
+        "         profile=%s",
+        query, capture.model_name,
+        parsed.filters.model_dump(), parsed.semantic_query,
+        parsed.student_profile.model_dump() if parsed.student_profile else None,
+    )
+    return parsed

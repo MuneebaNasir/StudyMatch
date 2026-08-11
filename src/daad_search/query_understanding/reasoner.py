@@ -3,7 +3,7 @@ import json
 import logging
 import re
 
-from .llm import get_fallback_llm
+from .llm import ModelNameCapture, get_fallback_llm
 from .schema import BatchEligibilityReasoning, CandidateForReasoning, EligibilityVerdict, StudentProfile
 
 logger = logging.getLogger(__name__)
@@ -145,9 +145,24 @@ def reason_about_eligibility(
     if not candidates:
         return []
     prompt = build_reasoning_prompt(profile, candidates)
+    capture = ModelNameCapture()
     try:
-        result: BatchEligibilityReasoning = get_fallback_llm(BatchEligibilityReasoning).invoke(prompt)
-        return result.verdicts
+        result: BatchEligibilityReasoning = get_fallback_llm(BatchEligibilityReasoning).invoke(
+            prompt, config={"callbacks": [capture]}
+        )
     except Exception:
         logger.exception("Failed to reason about eligibility for %d candidates", len(candidates))
         return None
+
+    candidates_by_id = {c.program_id: c for c in candidates}
+    for v in result.verdicts:
+        candidate = candidates_by_id.get(v.program_id)
+        logger.info(
+            "ELIGIBILITY  program_id=%s model=%s verdict=%s\n"
+            "             profile_input=%s\n"
+            "             program_input=%s",
+            v.program_id, capture.model_name, v.verdict,
+            profile.model_dump(),
+            candidate.structured_eligibility if candidate else None,
+        )
+    return result.verdicts

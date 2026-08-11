@@ -1,6 +1,8 @@
 # src/daad_search/query_understanding/llm.py
 from typing import TypeVar
 
+from langchain_core.callbacks import BaseCallbackHandler
+from langchain_core.outputs import LLMResult
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_groq import ChatGroq
 from langchain_mistralai import ChatMistralAI
@@ -11,6 +13,23 @@ from ..config import settings
 GROQ_MODEL = "llama-3.3-70b-versatile"
 MISTRAL_MODEL = "mistral-small-latest"
 GEMINI_MODEL = "gemini-2.0-flash"
+
+
+class ModelNameCapture(BaseCallbackHandler):
+    """Records which provider answered a `.invoke()` call, via LangChain's
+    on_llm_end callback. Read `.model_name` after the invoke returns."""
+
+    def __init__(self) -> None:
+        self.model_name: str | None = None
+
+    def on_llm_end(self, response: LLMResult, **kwargs: object) -> None:
+        try:
+            message = response.generations[0][0].message
+            metadata = message.response_metadata
+        except (IndexError, AttributeError):
+            return
+        self.model_name = metadata.get("model_name") or metadata.get("model")
+
 
 T = TypeVar("T", bound=BaseModel)
 

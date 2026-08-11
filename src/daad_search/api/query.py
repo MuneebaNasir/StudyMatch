@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -12,6 +14,8 @@ from ..query_understanding.schema import (
 )
 from . import search as search_module
 from .schemas import SearchFilters
+
+logger = logging.getLogger(__name__)
 
 REASONING_CANDIDATE_CAP = 1
 
@@ -37,6 +41,8 @@ async def handle_query(session: AsyncSession, query: str, limit: int, offset: in
         results, total = await search_module.hybrid_search(session, filters, semantic_query, limit, offset)
     else:
         results, total = await search_module.filtered_search(session, filters, limit, offset)
+
+    logger.info("RESULTS  total_matched=%d returned_ids=%s", total, [r.id for r in results])
 
     reasoning_pool = results[:REASONING_CANDIDATE_CAP]
     remainder = results[REASONING_CANDIDATE_CAP:]

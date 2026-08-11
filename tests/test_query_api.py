@@ -1,4 +1,5 @@
 import asyncio
+import logging
 from datetime import datetime, timezone
 
 import pytest
@@ -226,3 +227,20 @@ def test_query_leaves_german_scale_conversion_null_for_unrecognized_scale(api_cl
     assert response.status_code == 200
     body = response.json()
     assert body["extracted_profile"]["grade_value_on_german_scale"] is None
+
+
+@pytest.mark.seed_programs([
+    {"id": 1, "course_name": "Robotics Engineering MSc", "link": "https://example.com/1"},
+])
+def test_query_logs_the_results_outcome(api_client, monkeypatch, caplog):
+    monkeypatch.setattr(
+        query_module, "parse_query",
+        lambda q: ParsedQuery(filters=SearchFilters(), semantic_query=None, student_profile=StudentProfile()),
+    )
+
+    with caplog.at_level(logging.INFO, logger="daad_search.api.query"):
+        response = api_client.post("/query", json={"query": "robotics masters"})
+
+    assert response.status_code == 200
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("RESULTS" in m and "total_matched=1" in m for m in messages)

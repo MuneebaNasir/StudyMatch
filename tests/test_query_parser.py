@@ -1,7 +1,11 @@
 # tests/test_query_parser.py
+import logging
+
 import pytest
 
+from daad_search.api.schemas import SearchFilters
 from daad_search.query_understanding.parser import build_query_prompt, parse_query
+from daad_search.query_understanding.schema import ParsedQuery, StudentProfile
 
 
 def test_build_query_prompt_includes_the_raw_query():
@@ -18,12 +22,32 @@ def test_parse_query_returns_none_when_all_providers_fail(monkeypatch):
     from daad_search.query_understanding import parser as parser_module
 
     class AlwaysFailsChain:
-        def invoke(self, prompt):
+        def invoke(self, prompt, config=None):
             raise RuntimeError("all providers exhausted")
 
     monkeypatch.setattr(parser_module, "get_fallback_llm", lambda schema: AlwaysFailsChain())
 
     assert parse_query("anything") is None
+
+
+def test_parse_query_logs_the_raw_query_filters_and_profile(monkeypatch, caplog):
+    from daad_search.query_understanding import parser as parser_module
+
+    class FakeChain:
+        def invoke(self, prompt, config=None):
+            return ParsedQuery(
+                filters=SearchFilters(city="Berlin"), semantic_query="robotics",
+                student_profile=StudentProfile(nationality="Pakistan"),
+            )
+
+    monkeypatch.setattr(parser_module, "get_fallback_llm", lambda schema: FakeChain())
+
+    with caplog.at_level(logging.INFO, logger="daad_search.query_understanding.parser"):
+        parse_query("robotics masters in Berlin")
+
+    messages = [record.getMessage() for record in caplog.records]
+    assert any("QUERY" in m for m in messages)
+    assert any("robotics masters in Berlin" in m for m in messages)
 
 
 @pytest.mark.integration
