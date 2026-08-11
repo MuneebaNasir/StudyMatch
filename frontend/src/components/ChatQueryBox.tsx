@@ -32,12 +32,14 @@ export function ChatQueryBox({ onSubmit, isPending }: ChatQueryBoxProps) {
       onSubmit={handleSubmit}
       className="flex flex-col gap-3 rounded-2xl border border-line bg-background p-4 shadow-sm"
     >
+      <p className="text-xs text-ink/50">Example query — edit the details below to match your own background.</p>
       <textarea
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         rows={5}
         className="resize-none rounded-lg border border-line p-3 text-sm focus:outline-none focus:ring-2 focus:ring-accent"
       />
+      <p className="text-xs font-medium text-ink/50">Want to see more examples?</p>
       <div className="flex flex-wrap gap-2">
         <button
           type="button"

@@ -50,4 +50,25 @@ describe("ChatQueryBox", () => {
     await userEvent.click(screen.getByRole("button", { name: /bachelor's example/i }));
     expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toContain("[Bachelor's]");
   });
+
+  it("shows a caption above the textarea explaining it's an editable example", () => {
+    render(<ChatQueryBox onSubmit={vi.fn()} isPending={false} />);
+    expect(screen.getByText(/example query — edit the details below/i)).toBeInTheDocument();
+  });
+
+  it("shows a label inviting the user to see more examples above the chips", () => {
+    render(<ChatQueryBox onSubmit={vi.fn()} isPending={false} />);
+    expect(screen.getByText("Want to see more examples?")).toBeInTheDocument();
+  });
+
+  it("does not include the caption text in the submitted query", async () => {
+    const onSubmit = vi.fn();
+    render(<ChatQueryBox onSubmit={onSubmit} isPending={false} />);
+
+    await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
+
+    expect(onSubmit).toHaveBeenCalled();
+    const submittedQuery = onSubmit.mock.calls[0][0] as string;
+    expect(submittedQuery).not.toContain("Example query");
+  });
 });
