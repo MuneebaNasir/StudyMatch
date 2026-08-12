@@ -132,10 +132,54 @@ def test_get_local_model_returns_a_singleton(monkeypatch):
     monkeypatch.setattr(
         "sentence_transformers.SentenceTransformer", FakeSentenceTransformer
     )
+    monkeypatch.setattr("torch.set_num_threads", lambda n: None)
 
     first = embeddings_module.get_local_model()
     assert isinstance(first, FakeSentenceTransformer)
     assert embeddings_module.get_local_model() is first
+
+
+def test_get_local_model_caps_torch_threads_to_container_cpu_quota(monkeypatch):
+    monkeypatch.setattr(embeddings_module, "_local_model", None)
+
+    class FakeSentenceTransformer:
+        def __init__(self, name, local_files_only=False):
+            pass
+
+    monkeypatch.setattr(
+        "sentence_transformers.SentenceTransformer", FakeSentenceTransformer
+    )
+    monkeypatch.setattr(
+        embeddings_module.os, "sched_getaffinity", lambda pid: {0, 1}, raising=False
+    )
+
+    set_threads_calls = []
+    monkeypatch.setattr("torch.set_num_threads", lambda n: set_threads_calls.append(n))
+
+    embeddings_module.get_local_model()
+
+    assert set_threads_calls == [2]
+
+
+def test_get_local_model_falls_back_to_cpu_count_without_sched_affinity(monkeypatch):
+    monkeypatch.setattr(embeddings_module, "_local_model", None)
+
+    class FakeSentenceTransformer:
+        def __init__(self, name, local_files_only=False):
+            pass
+
+    monkeypatch.setattr(
+        "sentence_transformers.SentenceTransformer", FakeSentenceTransformer
+    )
+    monkeypatch.delattr(embeddings_module.os, "sched_getaffinity", raising=False)
+    monkeypatch.setattr(embeddings_module.os, "cpu_count", lambda: 4)
+
+    set_threads_calls = []
+    monkeypatch.setattr("torch.set_num_threads", lambda n: set_threads_calls.append(n))
+
+    embeddings_module.get_local_model()
+
+    assert set_threads_calls == [4]
 
 
 def test_get_qdrant_client_returns_a_singleton(monkeypatch):

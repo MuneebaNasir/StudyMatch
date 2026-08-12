@@ -6,19 +6,17 @@ body {
   @apply bg-background text-ink;
 }
 
-@keyframes snail-1 {
-  0%, 100% { transform: translateX(-90px); }
-  50% { transform: translateX(90px); }
-}
-@keyframes snail-2 {
-  0%, 100% { transform: translateX(-120px); }
-  50% { transform: translateX(120px); }
-}
-@keyframes snail-3 {
-  0%, 100% { transform: translateX(-150px); }
-  50% { transform: translateX(150px); }
+/* One-way loop (not back-and-forth): travels left-to-right, then snaps back
+   to the start for the next cycle, since there's no `alternate` direction.
+   Same duration/distance across all three stages by design -- only the
+   text and speed-trail emoji change between stages, not the motion. */
+@keyframes snail-loop {
+  0% { transform: translateX(-100px); }
+  100% { transform: translateX(100px); }
 }
 
-.animate-snail-1 { animation: snail-1 2s linear infinite; }
-.animate-snail-2 { animation: snail-2 0.9s linear infinite; }
-.animate-snail-3 { animation: snail-3 0.35s linear infinite; }
+.animate-snail-1,
+.animate-snail-2,
+.animate-snail-3 {
+  animation: snail-loop 1.5s linear infinite;
+}

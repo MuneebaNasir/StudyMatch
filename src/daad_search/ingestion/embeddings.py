@@ -1,5 +1,6 @@
 import collections
 import logging
+import os
 import threading
 import time
 from typing import Any, Callable, Literal, TypeVar
@@ -92,12 +93,36 @@ def get_voyage_client() -> voyageai.Client:
     return _voyage_client
 
 
+def _configure_torch_threads() -> None:
+    """Cap PyTorch's thread pool to the container's actual CPU quota.
+
+    PyTorch sizes its default thread pool from the host machine's core
+    count, not the cgroup CPU limit a container is actually granted. On
+    Cloud Run (2 vCPUs allocated), this caused severe thread
+    oversubscription: a single embedding computation that should take
+    well under a second took ~26s on a real cold start, measured via
+    Cloud Logging timestamps (2026-08-12). `os.sched_getaffinity` reports
+    the cgroup-limited CPU set correctly on Linux (Cloud Run's runtime);
+    it doesn't exist on macOS, hence the fallback to `os.cpu_count()` for
+    local development.
+    """
+    import torch
+
+    try:
+        cpu_count = len(os.sched_getaffinity(0))
+    except AttributeError:
+        cpu_count = os.cpu_count() or 1
+    torch.set_num_threads(cpu_count)
+
+
 def get_local_model() -> Any:
     """Process-wide local embedding model — loaded lazily so `import
     sentence_transformers` (pulls in torch) never happens on the Voyage path."""
     global _local_model
     if _local_model is None:
         from sentence_transformers import SentenceTransformer
+
+        _configure_torch_threads()
 
         try:
             # Already cached from a prior run: load fully offline, no Hub
