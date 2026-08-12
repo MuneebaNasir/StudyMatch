@@ -2,6 +2,8 @@
 
 *Natural-language search over ~2,400 real German study programs, with LLM eligibility reasoning that's engineered not to lie to you.*
 
+[![CI](https://github.com/MuneebaNasir/study-in-germany/actions/workflows/ci.yml/badge.svg)](https://github.com/MuneebaNasir/study-in-germany/actions/workflows/ci.yml)
+
 **Live demo:** https://frontend-snowy-ten-66.vercel.app
 **API:** https://daad-search-api-1032065198351.us-central1.run.app
 
