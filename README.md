@@ -1,9 +1,19 @@
 # Study in Germany — DAAD Program Search
 
-An LLM-powered search engine over ~2,400 real DAAD (German Academic Exchange Service) master's/PhD programs — natural-language query understanding, hybrid retrieval, and structured eligibility reasoning against a student's own background.
+*Natural-language search over ~2,400 real German study programs, with LLM eligibility reasoning that's engineered not to lie to you.*
 
 **Live demo:** https://frontend-snowy-ten-66.vercel.app
 **API:** https://daad-search-api-1032065198351.us-central1.run.app
+
+## Does it actually work?
+
+Yes — it's live, not a demo repo. Real DAAD (German Academic Exchange Service) program data, hybrid search, and eligibility reasoning, running in production on free-tier infrastructure (Vercel + Google Cloud Run + Neon Postgres + Qdrant Cloud).
+
+Building it end-to-end surfaced real production problems, not hypothetical ones:
+
+- A client-side caching bug where paginating silently re-ran (and re-paid for) LLM eligibility reasoning on pages already seen — fixed with a page cache and a merge-not-replace verdict strategy, verified with tests that assert the network call never happens twice.
+- A cold-start UX and cost problem on the free-tier backend, addressed with a real, measured token-cost model instead of guesswork.
+- A search-relevance question that looked like a bug at first — *"why isn't the top AI program showing up in Berlin?"* — turned out to be the ranking correctly respecting a filter that excluded the only two matching programs. Root-caused with direct database queries before writing a single line of a "fix," because the fix for a filter working correctly is not the fix for a ranking bug.
 
 ## The problem
 
@@ -31,9 +41,33 @@ This project's core interest is in the LLM-integration decisions, not just wirin
 ## Architecture
 
 ```
-React (Vite + TS) ─▶ FastAPI + async SQLAlchemy ─▶ Postgres (structured data)
-                                │                └─▶ Qdrant (vector search)
-                                └─▶ LangChain fallback chain: Groq → Mistral → Gemini
+                     ┌─▶ Postgres (filters, structured eligibility)
+React (Vite + TS) ──▶ FastAPI + async SQLAlchemy
+   Chat-style UI      │                ├─▶ Qdrant (vector search over program embeddings)
+                       │                └─▶ LangChain: Groq → Mistral → Gemini (fallback chain)
+                       │
+                  extraction pipeline (offline, once per program)
+                  raw admission text ──▶ structured eligibility schema
+```
+
+## File structure
+
+```
+├── src/daad_search/
+│   ├── api/                  # FastAPI routes, query orchestration, request/response schemas
+│   ├── query_understanding/  # LLM query parsing, eligibility reasoning, LangChain fallback chain
+│   ├── extraction/           # Offline pipeline: raw admission text -> structured eligibility
+│   ├── ingestion/            # Embedding generation, Qdrant upsert
+│   ├── scraping/             # DAAD catalog scraper
+│   └── db/                   # SQLAlchemy models, session management
+├── frontend/src/
+│   ├── components/           # Query box, results list, admission-guide drawer, loading states
+│   ├── hooks/                # TanStack Query hooks (search, pagination, eligibility evaluation)
+│   ├── api/                  # Typed API client
+│   └── lib/                  # Verdict merging, display helpers
+├── tests/                    # pytest suite (unit + integration, real Postgres/Qdrant for integration)
+├── Dockerfile                # Backend container (CPU-only torch, multi-stage build)
+└── docker-compose.yml        # Local Postgres + Qdrant for development
 ```
 
 ## Tech stack
