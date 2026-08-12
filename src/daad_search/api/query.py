@@ -44,8 +44,16 @@ async def handle_query(session: AsyncSession, query: str, limit: int, offset: in
 
     logger.info("RESULTS  total_matched=%d returned_ids=%s", total, [r.id for r in results])
 
-    reasoning_pool = results[:REASONING_CANDIDATE_CAP]
-    remainder = results[REASONING_CANDIDATE_CAP:]
+    # Automatic reasoning only runs for the first page of a fresh search --
+    # every subsequent page a user pages into would otherwise burn another
+    # LLM call on its own top candidate. Later pages fall through to
+    # "no_data" below and stay reachable via the on-demand evaluate endpoint.
+    if offset == 0:
+        reasoning_pool = results[:REASONING_CANDIDATE_CAP]
+        remainder = results[REASONING_CANDIDATE_CAP:]
+    else:
+        reasoning_pool = []
+        remainder = results
 
     verdicts_by_id: dict[int, EligibilityVerdict] = {}
     reasoned_ids: set[int] = set()

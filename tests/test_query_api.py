@@ -7,7 +7,7 @@ import pytest
 from daad_search.api import query as query_module
 from daad_search.api.schemas import SearchFilters
 from daad_search.db.models import Eligibility
-from daad_search.query_understanding.schema import ParsedQuery, StudentProfile
+from daad_search.query_understanding.schema import EligibilityVerdict, ParsedQuery, StudentProfile
 
 pytestmark = pytest.mark.integration
 
@@ -244,3 +244,58 @@ def test_query_logs_the_results_outcome(api_client, monkeypatch, caplog):
     assert response.status_code == 200
     messages = [record.getMessage() for record in caplog.records]
     assert any("RESULTS" in m and "total_matched=1" in m for m in messages)
+
+
+@pytest.mark.seed_programs([
+    {"id": 1, "course_name": "Robotics Engineering MSc", "link": "https://example.com/1"},
+])
+def test_query_offset_zero_runs_automatic_reasoning(api_client, seeded_session_factory, monkeypatch):
+    _seed_eligibility(seeded_session_factory, 1, {"grade_requirement": {"value": 2.5}})
+
+    monkeypatch.setattr(
+        query_module, "parse_query",
+        lambda q: ParsedQuery(
+            filters=SearchFilters(), semantic_query=None, student_profile=StudentProfile(nationality="Pakistan"),
+        ),
+    )
+    monkeypatch.setattr(
+        query_module, "reason_about_eligibility",
+        lambda profile, candidates: [EligibilityVerdict(program_id=1, verdict="eligible", reasoning="Meets requirements.")],
+    )
+
+    response = api_client.post("/query", json={"query": "robotics masters", "offset": 0})
+
+    assert response.status_code == 200
+    result = next(r for r in response.json()["results"] if r["id"] == 1)
+    assert result["eligibility_verdict"] == "eligible"
+
+
+@pytest.mark.seed_programs([
+    {"id": 1, "course_name": "A Course", "link": "https://example.com/1"},
+    {"id": 2, "course_name": "B Course", "link": "https://example.com/2"},
+])
+def test_query_offset_greater_than_zero_skips_automatic_reasoning(api_client, seeded_session_factory, monkeypatch):
+    # filtered_search orders by course_name, so "B Course" (id=2) is the sole
+    # result at limit=1/offset=1 -- a real second-page candidate, not an
+    # out-of-range offset.
+    _seed_eligibility(seeded_session_factory, 2, {"grade_requirement": {"value": 2.5}})
+
+    monkeypatch.setattr(
+        query_module, "parse_query",
+        lambda q: ParsedQuery(
+            filters=SearchFilters(), semantic_query=None, student_profile=StudentProfile(nationality="Pakistan"),
+        ),
+    )
+    monkeypatch.setattr(
+        query_module, "reason_about_eligibility",
+        lambda profile, candidates: [EligibilityVerdict(program_id=2, verdict="eligible", reasoning="Meets requirements.")],
+    )
+
+    response = api_client.post("/query", json={"query": "robotics masters", "limit": 1, "offset": 1})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert [r["id"] for r in body["results"]] == [2]
+    result = body["results"][0]
+    assert result["eligibility_verdict"] == "no_data"
+    assert result["eligibility_reasoning"] is None

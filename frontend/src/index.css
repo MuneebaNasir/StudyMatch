@@ -7,15 +7,15 @@ body {
 }
 
 @keyframes snail-1 {
-  0%, 100% { transform: translateX(0); }
+  0%, 100% { transform: translateX(-90px); }
   50% { transform: translateX(90px); }
 }
 @keyframes snail-2 {
-  0%, 100% { transform: translateX(0); }
+  0%, 100% { transform: translateX(-120px); }
   50% { transform: translateX(120px); }
 }
 @keyframes snail-3 {
-  0%, 100% { transform: translateX(0); }
+  0%, 100% { transform: translateX(-150px); }
   50% { transform: translateX(150px); }
 }
 
