@@ -1,10 +1,10 @@
 import { type ChangeEvent, type FormEvent, useEffect, useRef, useState } from "react";
 
-const MASTERS_TEMPLATE = `I am looking for a [Master's] program in [AI, agentic AI, and large language models], taught in [English], with [no tuition fees], near [Berlin].
+const MASTERS_TEMPLATE = `I am looking for a [Master's] program in [AI, agentic AI, and large language models], taught in [English], with [no tuition fees], near [Bonn].
 
 I have a [Bachelor's degree in Computer Science] with a [3.2 GPA on a 4.0 scale] from [Pakistan], and an [IELTS score of 7.0].`;
 
-const PHD_TEMPLATE = `I am looking for a [PhD] position in [machine learning and natural language processing], taught in [English], with [no tuition fees], near [Munich].
+const PHD_TEMPLATE = `I am looking for a [PhD] position in [machine learning and natural language processing], taught in [English], with [no tuition fees], near [Saarbrücken].
 
 I have a [Master's degree in Computer Science] with a [1.7 grade on the German scale] from [Nigeria], [2 years of research experience in NLP], and an [IELTS score of 7.5].`;
 
