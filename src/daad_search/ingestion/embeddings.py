@@ -93,25 +93,70 @@ def get_voyage_client() -> voyageai.Client:
     return _voyage_client
 
 
-def _configure_torch_threads() -> None:
-    """Cap PyTorch's thread pool to the container's actual CPU quota.
+def _detect_cpu_quota() -> int | None:
+    """Read the cgroup CPU quota, if the container has one.
 
-    PyTorch sizes its default thread pool from the host machine's core
-    count, not the cgroup CPU limit a container is actually granted. On
-    Cloud Run (2 vCPUs allocated), this caused severe thread
-    oversubscription: a single embedding computation that should take
-    well under a second took ~26s on a real cold start, measured via
-    Cloud Logging timestamps (2026-08-12). `os.sched_getaffinity` reports
-    the cgroup-limited CPU set correctly on Linux (Cloud Run's runtime);
-    it doesn't exist on macOS, hence the fallback to `os.cpu_count()` for
-    local development.
+    `os.sched_getaffinity` reports which cores a process CAN run on, not
+    how much compute time it's actually entitled to; the two can disagree
+    in a throttled container. Preferring the cgroup quota when it's
+    available is more correct in general, though it turned out NOT to be
+    the cause of a real cold-start slowdown investigated on 2026-08-12
+    (both signals agreed on the same value there) -- see
+    `_configure_torch_threads`'s docstring for what that investigation
+    actually found.
+    """
+    try:
+        with open("/sys/fs/cgroup/cpu.max") as f:  # cgroup v2
+            quota, period = f.read().split()
+        if quota == "max":
+            return None
+        return max(1, int(quota) // int(period))
+    except (FileNotFoundError, ValueError):
+        pass
+    try:
+        with open("/sys/fs/cgroup/cpu/cpu.cfs_quota_us") as f:  # cgroup v1
+            quota = int(f.read())
+        with open("/sys/fs/cgroup/cpu/cpu.cfs_period_us") as f:
+            period = int(f.read())
+        if quota <= 0:
+            return None
+        return max(1, quota // period)
+    except (FileNotFoundError, ValueError):
+        return None
+
+
+def _configure_torch_threads() -> None:
+    """Cap PyTorch's thread pool to the container's actual CPU entitlement.
+
+    Prefers the cgroup CPU quota over CPU affinity (see
+    `_detect_cpu_quota`), falling back to affinity and then
+    `os.cpu_count()` for environments with neither (e.g. local macOS
+    development).
+
+    Investigated as a fix for a real cold-start problem on Cloud Run
+    (2026-08-12): a single local-embedding computation was taking ~20-26s
+    on a fresh instance, vs ~0.66s measured locally for the identical
+    call. Profiled via Cloud Logging timestamps and confirmed this thread
+    configuration was NOT the cause -- on the real container, cgroup quota
+    and CPU affinity both independently reported 4 CPUs (agreeing with
+    each other), and forcing various thread counts (2, 4) plus disabling
+    Cloud Run's CPU throttling entirely made no reliable difference; the
+    ~20-37s cost recurred regardless, with enough run-to-run variance
+    (single samples ranged 28-71s) to suggest infrastructure-level
+    variance rather than anything this process controls. Left in place
+    since capping thread count to the real entitlement is still correct
+    practice, but the actual cold-start cost remains unexplained and
+    unresolved as of this investigation -- see project memory for the
+    full profiling notes before attempting another fix here.
     """
     import torch
 
-    try:
-        cpu_count = len(os.sched_getaffinity(0))
-    except AttributeError:
-        cpu_count = os.cpu_count() or 1
+    cpu_count = _detect_cpu_quota()
+    if cpu_count is None:
+        try:
+            cpu_count = len(os.sched_getaffinity(0))
+        except AttributeError:
+            cpu_count = os.cpu_count() or 1
     torch.set_num_threads(cpu_count)
 
 

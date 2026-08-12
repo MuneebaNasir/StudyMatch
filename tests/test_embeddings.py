@@ -139,7 +139,7 @@ def test_get_local_model_returns_a_singleton(monkeypatch):
     assert embeddings_module.get_local_model() is first
 
 
-def test_get_local_model_caps_torch_threads_to_container_cpu_quota(monkeypatch):
+def test_get_local_model_caps_torch_threads_to_detected_quota(monkeypatch):
     monkeypatch.setattr(embeddings_module, "_local_model", None)
 
     class FakeSentenceTransformer:
@@ -149,9 +149,7 @@ def test_get_local_model_caps_torch_threads_to_container_cpu_quota(monkeypatch):
     monkeypatch.setattr(
         "sentence_transformers.SentenceTransformer", FakeSentenceTransformer
     )
-    monkeypatch.setattr(
-        embeddings_module.os, "sched_getaffinity", lambda pid: {0, 1}, raising=False
-    )
+    monkeypatch.setattr(embeddings_module, "_detect_cpu_quota", lambda: 2)
 
     set_threads_calls = []
     monkeypatch.setattr("torch.set_num_threads", lambda n: set_threads_calls.append(n))
@@ -161,25 +159,112 @@ def test_get_local_model_caps_torch_threads_to_container_cpu_quota(monkeypatch):
     assert set_threads_calls == [2]
 
 
-def test_get_local_model_falls_back_to_cpu_count_without_sched_affinity(monkeypatch):
-    monkeypatch.setattr(embeddings_module, "_local_model", None)
-
-    class FakeSentenceTransformer:
-        def __init__(self, name, local_files_only=False):
-            pass
-
+def test_configure_torch_threads_prefers_cgroup_quota_over_affinity(monkeypatch):
+    # Regression: os.sched_getaffinity reported 4 CPUs inside a Cloud Run
+    # container configured with a 2-vCPU cgroup quota -- affinity reports
+    # which cores are visible, not how much compute time is actually
+    # granted, and trusting it caused severe CFS-throttling slowdowns.
+    monkeypatch.setattr(embeddings_module, "_detect_cpu_quota", lambda: 2)
     monkeypatch.setattr(
-        "sentence_transformers.SentenceTransformer", FakeSentenceTransformer
+        embeddings_module.os, "sched_getaffinity", lambda pid: {0, 1, 2, 3}, raising=False
     )
+
+    set_threads_calls = []
+    monkeypatch.setattr("torch.set_num_threads", lambda n: set_threads_calls.append(n))
+
+    embeddings_module._configure_torch_threads()
+
+    assert set_threads_calls == [2]
+
+
+def test_configure_torch_threads_falls_back_to_affinity_without_quota(monkeypatch):
+    monkeypatch.setattr(embeddings_module, "_detect_cpu_quota", lambda: None)
+    monkeypatch.setattr(
+        embeddings_module.os, "sched_getaffinity", lambda pid: {0, 1}, raising=False
+    )
+
+    set_threads_calls = []
+    monkeypatch.setattr("torch.set_num_threads", lambda n: set_threads_calls.append(n))
+
+    embeddings_module._configure_torch_threads()
+
+    assert set_threads_calls == [2]
+
+
+def test_configure_torch_threads_falls_back_to_cpu_count_without_quota_or_affinity(monkeypatch):
+    monkeypatch.setattr(embeddings_module, "_detect_cpu_quota", lambda: None)
     monkeypatch.delattr(embeddings_module.os, "sched_getaffinity", raising=False)
     monkeypatch.setattr(embeddings_module.os, "cpu_count", lambda: 4)
 
     set_threads_calls = []
     monkeypatch.setattr("torch.set_num_threads", lambda n: set_threads_calls.append(n))
 
-    embeddings_module.get_local_model()
+    embeddings_module._configure_torch_threads()
 
     assert set_threads_calls == [4]
+
+
+def test_detect_cpu_quota_reads_cgroup_v2_format(monkeypatch, tmp_path):
+    cgroup_file = tmp_path / "cpu.max"
+    cgroup_file.write_text("200000 100000\n")
+
+    real_open = open
+
+    def fake_open(path, *args, **kwargs):
+        if path == "/sys/fs/cgroup/cpu.max":
+            return real_open(cgroup_file, *args, **kwargs)
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", fake_open)
+
+    assert embeddings_module._detect_cpu_quota() == 2
+
+
+def test_detect_cpu_quota_returns_none_for_unlimited_cgroup_v2(monkeypatch, tmp_path):
+    cgroup_file = tmp_path / "cpu.max"
+    cgroup_file.write_text("max 100000\n")
+
+    real_open = open
+
+    def fake_open(path, *args, **kwargs):
+        if path == "/sys/fs/cgroup/cpu.max":
+            return real_open(cgroup_file, *args, **kwargs)
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", fake_open)
+
+    assert embeddings_module._detect_cpu_quota() is None
+
+
+def test_detect_cpu_quota_falls_back_to_cgroup_v1_format(monkeypatch, tmp_path):
+    quota_file = tmp_path / "cfs_quota_us"
+    quota_file.write_text("400000")
+    period_file = tmp_path / "cfs_period_us"
+    period_file.write_text("100000")
+
+    real_open = open
+
+    def fake_open(path, *args, **kwargs):
+        if path == "/sys/fs/cgroup/cpu.max":
+            raise FileNotFoundError(path)
+        if path == "/sys/fs/cgroup/cpu/cpu.cfs_quota_us":
+            return real_open(quota_file, *args, **kwargs)
+        if path == "/sys/fs/cgroup/cpu/cpu.cfs_period_us":
+            return real_open(period_file, *args, **kwargs)
+        return real_open(path, *args, **kwargs)
+
+    monkeypatch.setattr("builtins.open", fake_open)
+
+    assert embeddings_module._detect_cpu_quota() == 4
+
+
+def test_detect_cpu_quota_returns_none_when_no_cgroup_files_exist(monkeypatch):
+    def fake_open(path, *args, **kwargs):
+        raise FileNotFoundError(path)
+
+    monkeypatch.setattr("builtins.open", fake_open)
+
+    assert embeddings_module._detect_cpu_quota() is None
 
 
 def test_get_qdrant_client_returns_a_singleton(monkeypatch):
