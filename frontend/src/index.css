@@ -19,6 +19,6 @@ body {
   50% { transform: translateX(150px); }
 }
 
-.animate-snail-1 { animation: snail-1 1.4s ease-in-out infinite; }
-.animate-snail-2 { animation: snail-2 0.9s ease-in-out infinite; }
-.animate-snail-3 { animation: snail-3 0.5s ease-in-out infinite; }
+.animate-snail-1 { animation: snail-1 2s linear infinite; }
+.animate-snail-2 { animation: snail-2 0.9s linear infinite; }
+.animate-snail-3 { animation: snail-3 0.35s linear infinite; }
