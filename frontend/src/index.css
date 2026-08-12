@@ -8,15 +8,15 @@ body {
 
 @keyframes snail-1 {
   0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(24px); }
+  50% { transform: translateX(90px); }
 }
 @keyframes snail-2 {
   0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(32px); }
+  50% { transform: translateX(120px); }
 }
 @keyframes snail-3 {
   0%, 100% { transform: translateX(0); }
-  50% { transform: translateX(40px); }
+  50% { transform: translateX(150px); }
 }
 
 .animate-snail-1 { animation: snail-1 1.4s ease-in-out infinite; }

@@ -47,7 +47,7 @@ export function ChatQueryBox({ onSubmit, isPending }: ChatQueryBoxProps) {
       onSubmit={handleSubmit}
       className="flex flex-col gap-3 rounded-2xl border border-line bg-background p-4 shadow-sm"
     >
-      <p className="text-xs text-ink/50">Example query — edit the details below to match your own background.</p>
+      <p className="text-xs text-ink/50">Edit the details below to match your own background.</p>
       <textarea
         value={query}
         onChange={handleChange}
@@ -62,6 +62,13 @@ export function ChatQueryBox({ onSubmit, isPending }: ChatQueryBoxProps) {
       </p>
       <p className="text-xs font-medium text-ink/50">Want to see more examples?</p>
       <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => setQuery(MASTERS_TEMPLATE)}
+          className="rounded-full border border-line px-3 py-1 text-xs text-ink/70 hover:bg-line/40"
+        >
+          Master's example
+        </button>
         <button
           type="button"
           onClick={() => setQuery(PHD_TEMPLATE)}

@@ -45,6 +45,13 @@ describe("ChatQueryBox", () => {
     expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toContain("[PhD]");
   });
 
+  it("clicking the Master's example chip restores the Master's template after another example was selected", async () => {
+    render(<ChatQueryBox onSubmit={vi.fn()} isPending={false} />);
+    await userEvent.click(screen.getByRole("button", { name: /phd example/i }));
+    await userEvent.click(screen.getByRole("button", { name: /master's example/i }));
+    expect((screen.getByRole("textbox") as HTMLTextAreaElement).value).toContain("[Master's]");
+  });
+
   it("clicking the Bachelor's example chip replaces the textarea content with the Bachelor's template", async () => {
     render(<ChatQueryBox onSubmit={vi.fn()} isPending={false} />);
     await userEvent.click(screen.getByRole("button", { name: /bachelor's example/i }));
@@ -53,7 +60,7 @@ describe("ChatQueryBox", () => {
 
   it("shows a caption above the textarea explaining it's an editable example", () => {
     render(<ChatQueryBox onSubmit={vi.fn()} isPending={false} />);
-    expect(screen.getByText(/example query — edit the details below/i)).toBeInTheDocument();
+    expect(screen.getByText("Edit the details below to match your own background.")).toBeInTheDocument();
   });
 
   it("shows a label inviting the user to see more examples above the chips", () => {
@@ -69,7 +76,7 @@ describe("ChatQueryBox", () => {
 
     expect(onSubmit).toHaveBeenCalled();
     const submittedQuery = onSubmit.mock.calls[0][0] as string;
-    expect(submittedQuery).not.toContain("Example query");
+    expect(submittedQuery).not.toContain("Edit the details below");
   });
 });
 
