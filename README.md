@@ -1,6 +1,6 @@
 # Study in Germany: Hybrid Retrieval & Eligibility Engine for German Study Programs
 
-🐌 *Your not-so-fast-but-very-thorough international student counselor.*
+🐌 *Your international student counselor for German universities. Write your query and the snail find the right program for you..*
 
 [![CI](https://github.com/MuneebaNasir/study-in-germany/actions/workflows/ci.yml/badge.svg)](https://github.com/MuneebaNasir/study-in-germany/actions/workflows/ci.yml)
 
@@ -14,17 +14,17 @@
 
 ## Does it actually work?
 
-Yes, it's live. Built to finally answer the "which programs am I even eligible for?" DMs I kept getting. You type your query the way you'd actually say it out loud, not the way a filter UI expects:
+Yes, it's live. You type your query the way you'd actually say it out loud, not the way a filter UI expects:
 
 > *"I'm looking for a Master's in robotics, taught in English, no tuition fees, near Berlin. I have a 3.2 GPA on a 4.0 scale from Pakistan, and an IELTS score of 7.0."*
 
 It searches all ~2,400 real German international study programs listed on DAAD and comes back with a ranked list, each one carrying an actual eligibility verdict. Not a maybe.
 
-It runs entirely on free-tier infrastructure (Vercel + Google Cloud Run + Neon Postgres + Qdrant Cloud), which means the backend scales to zero when nobody's using it. First request after a quiet stretch can take a while to wake up 🐌, and if it's slow, that's the free tier's fault, not the search itself. Built with Claude Code CLI doing a lot of the heavy lifting alongside me.
+It runs entirely on free-tier infrastructure (Vercel + Google Cloud Run + Neon Postgres + Qdrant Cloud).
 
 ## The problem
 
-Most program-search tools make you speak their language: pick from dropdowns, guess the right keyword, hope "no tuition fees" is phrased the way the site expects. A student should be able to just describe what they're looking for, in their own words, the way they'd explain it to a study-abroad counselor, not learn a filter UI first.
+Most program search tools make you speak their language: pick from dropdowns, guess the right keyword, hope "no tuition fees" is phrased the way the site expects. A student should be able to just describe what they're looking for, in their own words, the way they'd explain it to a study abroad counselor, and it will also check your eligibility.
 
 ## How it works (and why it doesn't just make things up)
 
