@@ -6,6 +6,12 @@
 
 **[Try it live →](https://frontend-snowy-ten-66.vercel.app)**
 
+<p align="center">
+  <img src="assets/demo.gif" alt="Demo: typing a free-text query and getting ranked results with eligibility verdicts" width="700">
+</p>
+
+🐌 [Watch with sound (mp4)](assets/demo.mp4)
+
 ## Does it actually work?
 
 Yes, it's live. Built to finally answer the "which programs am I even eligible for?" DMs I kept getting. You type your query the way you'd actually say it out loud, not the way a filter UI expects:
@@ -22,12 +28,6 @@ Most program-search tools make you speak their language: pick from dropdowns, gu
 
 ## How it works (and why it doesn't just make things up)
 
-<p align="center">
-  <img src="assets/demo.gif" alt="Demo: typing a free-text query and getting ranked results with eligibility verdicts" width="700">
-</p>
-
-🐌 [Watch with sound (mp4)](assets/demo.mp4)
-
 Every query gets split into three things by a single LLM call: hard filters, a topic string, and your structured profile. Two databases hold two different kinds of truth about each program, and a search touches both:
 
 - 🔍 **Filters** (tuition, city, degree level) hit **Postgres**, which also holds each program's admission requirements, pre-extracted into structured fields like a grade threshold or which language tests are accepted.
@@ -38,21 +38,35 @@ On the LLM side, a three-tier fallback chain (Groq's Llama 3.3 → Mistral → G
 
 ```mermaid
 flowchart TD
-    subgraph INPUT["What you type, one text box"]
-        Q(("Free-text query"))
-        P(("Your profile"))
+    subgraph INPUT["📝 What you type, one text box"]
+        Q(("Free-text<br/>query"))
+        P(("Your<br/>profile"))
     end
-    INPUT --> LLM["One LLM call splits it into three things"]
-    LLM --> C["Hard filters<br/>city, tuition, degree level"]
-    LLM --> D["Topic<br/>'AI, agentic AI, LLMs'"]
-    LLM --> E["Structured profile<br/>grade, nationality, field"]
-    C --> F[("Postgres<br/>exact filtering")]
-    D --> G[("Qdrant<br/>semantic search")]
-    F --> H["Ranked results"]
+    INPUT --> LLM["🧩 One LLM call splits it<br/>into three things"]
+    LLM --> C["🔍 Hard filters<br/>city, tuition, degree level"]
+    LLM --> D["🧠 Topic<br/>'AI, agentic AI, LLMs'"]
+    LLM --> E["🧾 Structured profile<br/>grade, nationality, field"]
+    C --> F[("🐘 Postgres<br/>exact filtering")]
+    D --> G[("🧲 Qdrant<br/>semantic search")]
+    F --> H["🏆 Ranked results"]
     G --> H
-    H --> I["Top match's structured requirements<br/>+ your structured profile"]
+    H --> I["Top match's requirements<br/>+ your profile"]
     E --> I
-    I --> J["LLM eligibility verdict<br/>eligible / not eligible / unclear"]
+    I --> J["✅ Eligibility verdict<br/>eligible · not eligible · unclear"]
+
+    classDef input fill:#faf3ea,stroke:#d97a4d,stroke-width:2px,color:#3a3226
+    classDef llm fill:#d97a4d,stroke:#b5501f,stroke-width:2px,color:#fff,font-weight:bold
+    classDef branch fill:#fbeee0,stroke:#d97a4d,stroke-width:1.5px,color:#3a3226
+    classDef store fill:#e9f1ee,stroke:#4a7c68,stroke-width:2px,color:#1f3d33
+    classDef result fill:#faf3ea,stroke:#d97a4d,stroke-width:1.5px,color:#3a3226
+    classDef verdict fill:#4a7c68,stroke:#2e5245,stroke-width:2px,color:#fff,font-weight:bold
+
+    class Q,P input
+    class LLM llm
+    class C,D,E branch
+    class F,G store
+    class H,I result
+    class J verdict
 ```
 
 1. **Query to structure.** One LLM call turns your text into hard filters, a topic string, and a profile.
