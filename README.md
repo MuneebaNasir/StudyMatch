@@ -1,6 +1,6 @@
-# Study in Germany: DAAD Program Search
+# Study in Germany: Hybrid Retrieval & Eligibility Engine for German Study Programs
 
-*Your international student counselor. Write your query and we will find the right program for you.*
+🐌 *Your not-so-fast-but-very-thorough international student counselor.*
 
 [![CI](https://github.com/MuneebaNasir/study-in-germany/actions/workflows/ci.yml/badge.svg)](https://github.com/MuneebaNasir/study-in-germany/actions/workflows/ci.yml)
 
@@ -8,31 +8,33 @@
 
 ## Does it actually work?
 
-Yes, it's live, running on free-tier infrastructure (Vercel + Google Cloud Run + Neon Postgres + Qdrant Cloud). Natural-language search over ~2,400 real German study programs, with LLM eligibility reasoning built to be trustworthy, not just confident.
+Yes, it's live. Built to finally answer the "which programs am I even eligible for?" DMs I kept getting. You type your query the way you'd actually say it out loud, not the way a filter UI expects:
+
+> *"I'm looking for a Master's in robotics, taught in English, no tuition fees, near Berlin. I have a 3.2 GPA on a 4.0 scale from Pakistan, and an IELTS score of 7.0."*
+
+It searches all ~2,400 real German international study programs listed on DAAD and comes back with a ranked list, each one carrying an actual eligibility verdict. Not a maybe.
+
+It runs entirely on free-tier infrastructure (Vercel + Google Cloud Run + Neon Postgres + Qdrant Cloud), which means the backend scales to zero when nobody's using it. First request after a quiet stretch can take a while to wake up 🐌, and if it's slow, that's the free tier's fault, not the search itself. Built with Claude Code CLI doing a lot of the heavy lifting alongside me.
 
 ## The problem
 
 Most program-search tools make you speak their language: pick from dropdowns, guess the right keyword, hope "no tuition fees" is phrased the way the site expects. A student should be able to just describe what they're looking for, in their own words, the way they'd explain it to a study-abroad counselor, not learn a filter UI first.
 
-## How it works
+## How it works (and why it doesn't just make things up)
 
-<!--
-  TODO: add real screenshots to assets/screenshots/, then uncomment below.
-  Suggested shots: (1) the landing page with the pre-filled example query,
-  (2) a results list with eligibility badges, (3) the admission-guide drawer open
-  showing the structured requirements and verdict.
+<p align="center">
+  <img src="assets/demo.gif" alt="Demo: typing a free-text query and getting ranked results with eligibility verdicts" width="700">
+</p>
 
-  <p align="center">
-    <img src="assets/screenshots/search.png" alt="Search results with eligibility badges" width="800">
-  </p>
--->
+🐌 [Watch with sound (mp4)](assets/demo.mp4)
 
-Type a free-text query, like *"Master's in robotics, taught in English, no tuition fees, near Berlin. I have a 3.2 GPA on a 4.0 scale from Pakistan,"* and get back matching programs, ranked, each with an eligibility verdict.
+Every query gets split into three things by a single LLM call: hard filters, a topic string, and your structured profile. Two databases hold two different kinds of truth about each program, and a search touches both:
 
-Two databases hold two different kinds of truth about each program, and a search touches both:
+- 🔍 **Filters** (tuition, city, degree level) hit **Postgres**, which also holds each program's admission requirements, pre-extracted into structured fields like a grade threshold or which language tests are accepted.
+- 🧠 **The topic** gets embedded and matched against **Qdrant** semantically, so "agentic AI and large language models" can match a program that never uses those exact words, by comparing meaning rather than keywords.
+- ✅ **Your eligibility verdict** only ever compares your structured profile against a program's structured requirements, never the raw admissions paragraph. If there's no clean field to point to, it says "unclear" instead of guessing.
 
-- **Postgres** holds the exact facts: university, city, languages taught, tuition, course level, and (from a separate offline extraction step) each program's admission requirements broken into structured fields, like a grade threshold or which language tests are accepted.
-- **Qdrant** holds a meaning vector for each program, generated from its description. This is what lets "agentic AI and large language models" match a program that never uses those exact words, by comparing meaning rather than keywords.
+On the LLM side, a three-tier fallback chain (Groq's Llama 3.3 → Mistral → Gemini, via LangChain) keeps things running if a provider goes down 🐌. A local embedding model (`BAAI/bge-large`, via `sentence-transformers`) keeps semantic search alive even if all three cloud LLMs are unavailable.
 
 ```mermaid
 flowchart TD
