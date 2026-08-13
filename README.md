@@ -26,7 +26,7 @@ It runs entirely on free-tier infrastructure (Vercel + Google Cloud Run + Neon P
 
 Most program search tools make you speak their language: pick from dropdowns, guess the right keyword, hope "no tuition fees" is phrased the way the site expects. A student should be able to just describe what they're looking for, in their own words, the way they'd explain it to a study abroad counselor, and it will also check your eligibility.
 
-## How it works (and why it doesn't just make things up)
+## How it works (and why it doesn't Hallucinate)
 
 Every query gets split into three things by a single LLM call: hard filters, a topic string, and your structured profile. Two databases hold two different kinds of truth about each program, and a search touches both:
 
