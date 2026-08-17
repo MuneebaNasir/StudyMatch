@@ -26,6 +26,15 @@ It runs entirely on free-tier infrastructure (Vercel + Google Cloud Run + Neon P
 
 Most program search tools make you speak their language: pick from dropdowns, guess the right keyword, hope "no tuition fees" is phrased the way the site expects. A student should be able to just describe what they're looking for, in their own words, the way they'd explain it to a study abroad counselor, and it will also check your eligibility.
 
+## Tech stack
+
+- **AI/LLM:** LangChain (structured output + `.with_fallbacks()`), Groq (Llama 3.3), Mistral, Google Gemini, `sentence-transformers` (local embeddings, `BAAI/bge-large-en-v1.5`, no API key/rate limit)
+- **Backend:** Python, FastAPI, SQLAlchemy (async), Pydantic
+- **Data:** PostgreSQL (Neon), Qdrant (vector search)
+- **Frontend:** React, TypeScript, Vite, TanStack Query, Radix UI, Tailwind CSS
+- **Deployment:** Google Cloud Run (backend, scale-to-zero), Vercel (frontend), Docker, all on free tiers
+- **Testing:** pytest + Vitest/Testing Library/MSW, TDD throughout, 90+ tests across both stacks
+- 
 ## How it works (and why it doesn't Hallucinate)
 
 Every query gets split into three things by a single LLM call: hard filters, a topic string, and your structured profile. Two databases hold two different kinds of truth about each program, and a search touches both:
@@ -84,15 +93,6 @@ flowchart LR
     API --> LLM["LangChain fallback chain<br/>Groq to Mistral to Gemini"]
     EXT["Extraction pipeline<br/>offline, once per program"] --> PG
 ```
-
-## Tech stack
-
-- **AI/LLM:** LangChain (structured output + `.with_fallbacks()`), Groq (Llama 3.3), Mistral, Google Gemini, `sentence-transformers` (local embeddings, `BAAI/bge-large-en-v1.5`, no API key/rate limit)
-- **Backend:** Python, FastAPI, SQLAlchemy (async), Pydantic
-- **Data:** PostgreSQL (Neon), Qdrant (vector search)
-- **Frontend:** React, TypeScript, Vite, TanStack Query, Radix UI, Tailwind CSS
-- **Deployment:** Google Cloud Run (backend, scale-to-zero), Vercel (frontend), Docker, all on free tiers
-- **Testing:** pytest + Vitest/Testing Library/MSW, TDD throughout, 90+ tests across both stacks
 
 ## Under the hood
 
