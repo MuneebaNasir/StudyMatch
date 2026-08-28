@@ -45,3 +45,43 @@ def test_extract_with_local_vlm_falls_back_to_low_confidence_on_unparseable_outp
 
     assert result.extraction_confidence == "low"
     assert result.courses == []
+
+
+def test_extract_with_local_vlm_skips_a_page_whose_courses_field_is_not_a_list(monkeypatch):
+    answer = '{"courses": "not-a-list"}'
+    monkeypatch.setattr(local_vlm_module, "_load_model", lambda: (_FakeModel(answer), object()))
+
+    result = local_vlm_module.extract_with_local_vlm([_fake_png_bytes()])
+
+    assert result.extraction_confidence == "low"
+    assert result.courses == []
+
+
+def test_extract_with_local_vlm_skips_a_page_with_an_invalid_course_field_type(monkeypatch):
+    answer = '{"courses": [{"name": 123}]}'
+    monkeypatch.setattr(local_vlm_module, "_load_model", lambda: (_FakeModel(answer), object()))
+
+    result = local_vlm_module.extract_with_local_vlm([_fake_png_bytes()])
+
+    assert result.extraction_confidence == "low"
+    assert result.courses == []
+
+
+def test_extract_with_local_vlm_does_not_crash_across_multiple_pages_when_one_is_malformed(monkeypatch):
+    good_answer = '{"courses": [{"name": "Linear Algebra", "grade": "A"}]}'
+    bad_answer = '{"courses": [{"name": 123}]}'
+    answers = iter([good_answer, bad_answer])
+
+    class _MultiPageFakeModel:
+        def encode_image(self, image):
+            return image
+
+        def answer_question(self, encoded_image, question, tokenizer):
+            return next(answers)
+
+    monkeypatch.setattr(local_vlm_module, "_load_model", lambda: (_MultiPageFakeModel(), object()))
+
+    result = local_vlm_module.extract_with_local_vlm([_fake_png_bytes(), _fake_png_bytes()])
+
+    assert result.extraction_confidence == "medium"
+    assert result.courses[0].name == "Linear Algebra"
