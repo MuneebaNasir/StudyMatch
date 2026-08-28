@@ -60,3 +60,15 @@ def test_extract_transcript_returns_low_confidence_when_everything_fails(monkeyp
 
     assert result.extraction_confidence == "low"
     assert result.courses == []
+
+
+def test_extract_transcript_returns_low_confidence_when_rasterization_fails(monkeypatch):
+    def _raise(file_bytes, content_type):
+        raise RuntimeError("corrupt pdf")
+
+    monkeypatch.setattr(extractor_module, "file_to_page_images", _raise)
+
+    result = extractor_module.extract_transcript(_fake_png_bytes(), "application/pdf")
+
+    assert result.extraction_confidence == "low"
+    assert result.courses == []

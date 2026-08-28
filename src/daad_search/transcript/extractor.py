@@ -17,8 +17,12 @@ EXTRACTION_PROMPT = (
 
 
 def extract_transcript(file_bytes: bytes, content_type: str) -> TranscriptExtraction:
-    page_images = file_to_page_images(file_bytes, content_type)
-    message = build_image_message(EXTRACTION_PROMPT, page_images)
+    try:
+        page_images = file_to_page_images(file_bytes, content_type)
+        message = build_image_message(EXTRACTION_PROMPT, page_images)
+    except Exception:
+        logger.exception("Failed to prepare transcript images for extraction")
+        return TranscriptExtraction(extraction_confidence="low")
 
     try:
         result = get_vision_fallback_llm(TranscriptExtraction).invoke([message])
