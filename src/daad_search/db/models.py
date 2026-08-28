@@ -68,3 +68,16 @@ class Eligibility(Base):
         Index("ix_eligibility_min_german_level", "min_german_level"),
         Index("ix_eligibility_min_english_level", "min_english_level"),
     )
+
+
+class TranscriptProfile(Base):
+    __tablename__ = "transcript_profiles"
+
+    session_token: Mapped[str] = mapped_column(Text, primary_key=True)
+    courses: Mapped[list] = mapped_column(JSONB, default=list)
+    grade_value: Mapped[float | None] = mapped_column(Float, nullable=True)
+    grade_scale: Mapped[str | None] = mapped_column(Text, nullable=True)
+    nationality: Mapped[str | None] = mapped_column(Text, nullable=True)
+    degree_field: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
