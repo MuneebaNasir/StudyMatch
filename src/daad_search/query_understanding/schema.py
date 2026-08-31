@@ -3,6 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from ..api.schemas import SearchFilters, SearchResult
+from ..transcript.schema import ExtractedCourse
 
 
 class StudentProfile(BaseModel):
@@ -40,6 +41,7 @@ class QueryRequest(BaseModel):
     query: str
     limit: int = Field(20, ge=1, le=100)
     offset: int = Field(0, ge=0)
+    session_token: str | None = None
 
 
 class QueryResult(SearchResult):
@@ -52,4 +54,5 @@ class QueryResponse(BaseModel):
     total_matched: int
     extracted_filters: SearchFilters | None = None
     extracted_profile: StudentProfile | None = None
+    extracted_courses: list[ExtractedCourse] | None = None
     semantic_query: str | None = None

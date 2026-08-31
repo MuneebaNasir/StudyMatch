@@ -7,8 +7,11 @@ from daad_search.query_understanding.schema import (
     CandidateForReasoning,
     EligibilityVerdict,
     ParsedQuery,
+    QueryRequest,
+    QueryResponse,
     StudentProfile,
 )
+from daad_search.transcript.schema import ExtractedCourse
 
 
 def test_parsed_query_constructs_from_full_payload():
@@ -56,3 +59,20 @@ def test_candidate_for_reasoning_constructs():
     )
     assert candidate.program_id == 10396
     assert candidate.structured_eligibility["grade_requirement"]["value"] == 2.5
+
+
+def test_query_request_session_token_defaults_to_none():
+    request = QueryRequest(query="robotics masters")
+    assert request.session_token is None
+
+
+def test_query_request_accepts_a_session_token():
+    request = QueryRequest(query="robotics masters", session_token="abc123")
+    assert request.session_token == "abc123"
+
+
+def test_query_response_carries_extracted_courses():
+    response = QueryResponse(
+        results=[], total_matched=0, extracted_courses=[ExtractedCourse(name="Linear Algebra")],
+    )
+    assert response.extracted_courses[0].name == "Linear Algebra"
