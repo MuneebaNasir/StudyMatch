@@ -3,6 +3,7 @@ import json
 import logging
 import re
 
+from ..transcript.schema import ExtractedCourse
 from .llm import ModelNameCapture, get_fallback_llm
 from .schema import BatchEligibilityReasoning, CandidateForReasoning, EligibilityVerdict, StudentProfile
 
@@ -21,6 +22,8 @@ Grades: the program's grade threshold is stated on the German scale, where LOWER
 Standardized tests: a program's GRE/GMAT requirement may be conditional (see eligibility_condition, e.g. "only for non-EU/EEA applicants") or waived under a stated condition (see waiver, e.g. "waived if CGPA better than 1.3"). Apply these conditions using the student's nationality/grade where relevant.
 
 Language requirements: a program's language requirement lists ACCEPTED TESTS as alternatives -- the student only needs to plausibly meet ONE, not all.
+
+Completed coursework: if the student profile below includes the student's academic coursework, judge whether that list plausibly satisfies the program's degree_prerequisite.description (e.g. a background heavy in programming/math/statistics courses plausibly satisfies "Bachelor's in a related field such as Computer Science"). Fold this judgment into the same verdict categories above rather than treating it as a separate dimension -- a strong course match can support "eligible"/"likely_eligible" even with an otherwise borderline grade, and a clearly unrelated course history is grounds for "not_eligible" even if the grade threshold is met.
 
 Student profile:
 {student_profile}
@@ -108,12 +111,18 @@ def convert_to_german_scale(grade_value: float, grade_scale: str | None) -> floa
     return round(max(1.0, min(5.0, converted)), 2)
 
 
-def build_reasoning_prompt(profile: StudentProfile, candidates: list[CandidateForReasoning]) -> str:
+def build_reasoning_prompt(
+    profile: StudentProfile,
+    candidates: list[CandidateForReasoning],
+    courses: list[ExtractedCourse] | None = None,
+) -> str:
     profile_dict = profile.model_dump()
     if profile.grade_value is not None:
         converted = convert_to_german_scale(profile.grade_value, profile.grade_scale)
         if converted is not None:
             profile_dict["grade_value_on_german_scale"] = converted
+    if courses:
+        profile_dict["completed_courses"] = [c.model_dump() for c in courses]
     profile_text = json.dumps(profile_dict, indent=2)
 
     candidates_text = "\n\n".join(
@@ -140,11 +149,13 @@ def build_reasoning_prompt(profile: StudentProfile, candidates: list[CandidateFo
 # reliable there, this may be specific to weaker fallback tiers rather than
 # a fundamental prompt limitation.
 def reason_about_eligibility(
-    profile: StudentProfile, candidates: list[CandidateForReasoning]
+    profile: StudentProfile,
+    candidates: list[CandidateForReasoning],
+    courses: list[ExtractedCourse] | None = None,
 ) -> list[EligibilityVerdict] | None:
     if not candidates:
         return []
-    prompt = build_reasoning_prompt(profile, candidates)
+    prompt = build_reasoning_prompt(profile, candidates, courses)
     capture = ModelNameCapture()
     try:
         result: BatchEligibilityReasoning = get_fallback_llm(BatchEligibilityReasoning).invoke(

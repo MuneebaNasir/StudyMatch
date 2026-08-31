@@ -15,6 +15,7 @@ from daad_search.query_understanding.schema import (
     EligibilityVerdict,
     StudentProfile,
 )
+from daad_search.transcript.schema import ExtractedCourse
 
 
 def test_build_reasoning_prompt_includes_profile_and_candidates():
@@ -98,6 +99,31 @@ def test_build_reasoning_prompt_includes_precomputed_conversion_for_recognized_s
     prompt = build_reasoning_prompt(profile, candidates)
     assert "grade_value_on_german_scale" in prompt
     assert "3.0" in prompt
+
+
+def test_build_reasoning_prompt_includes_completed_courses_when_provided():
+    profile = StudentProfile(grade_value=3.2, nationality="Pakistan")
+    candidates = [
+        CandidateForReasoning(
+            program_id=10396, course_name="Additive Manufacturing",
+            structured_eligibility={"foo": "bar"},
+        ),
+    ]
+    courses = [ExtractedCourse(name="Linear Algebra", grade="A")]
+
+    prompt = build_reasoning_prompt(profile, candidates, courses)
+
+    assert "completed_courses" in prompt
+    assert "Linear Algebra" in prompt
+
+
+def test_build_reasoning_prompt_omits_completed_courses_when_absent():
+    profile = StudentProfile(grade_value=3.2)
+    candidates = [CandidateForReasoning(program_id=1, course_name="X", structured_eligibility={})]
+
+    prompt = build_reasoning_prompt(profile, candidates)
+
+    assert "completed_courses" not in prompt
 
 
 def test_reason_about_eligibility_returns_empty_list_for_no_candidates():
