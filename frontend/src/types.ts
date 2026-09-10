@@ -40,11 +40,27 @@ export interface QueryResult extends SearchResult {
   eligibility_reasoning: string | null;
 }
 
+export interface ExtractedCourse {
+  name: string;
+  grade: string | null;
+}
+
+export interface TranscriptUploadResponse {
+  session_token: string;
+  courses: ExtractedCourse[];
+  grade_value: number | null;
+  grade_scale: string | null;
+  nationality: string | null;
+  degree_field: string | null;
+  extraction_confidence: "high" | "medium" | "low";
+}
+
 export interface QueryResponse {
   results: QueryResult[];
   total_matched: number;
   extracted_filters: SearchFilters | null;
   extracted_profile: StudentProfile | null;
+  extracted_courses: ExtractedCourse[] | null;
   semantic_query: string | null;
 }
 

@@ -1,5 +1,6 @@
 import type {
   EvaluateEligibilityResponse, ProgramDetail, QueryResponse, SearchFilters, SearchResponse, StudentProfile,
+  TranscriptUploadResponse,
 } from "../types";
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
@@ -15,10 +16,12 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
-export function postQuery(query: string, offset = 0, limit = 20): Promise<QueryResponse> {
+export function postQuery(
+  query: string, offset = 0, limit = 20, sessionToken: string | null = null,
+): Promise<QueryResponse> {
   return request<QueryResponse>("/query", {
     method: "POST",
-    body: JSON.stringify({ query, offset, limit }),
+    body: JSON.stringify({ query, offset, limit, session_token: sessionToken }),
   });
 }
 
@@ -33,6 +36,16 @@ export function postSearch(
 
 export function getProgram(id: number): Promise<ProgramDetail> {
   return request<ProgramDetail>(`/programs/${id}`);
+}
+
+export async function postTranscript(file: File): Promise<TranscriptUploadResponse> {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await fetch(`${API_BASE_URL}/transcript`, { method: "POST", body: formData });
+  if (!response.ok) {
+    throw new Error(`POST /transcript failed with ${response.status}`);
+  }
+  return response.json() as Promise<TranscriptUploadResponse>;
 }
 
 export function postEvaluateEligibility(
