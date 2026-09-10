@@ -17,6 +17,14 @@ export function TranscriptUpload({ onUploaded }: TranscriptUploadProps) {
     upload.mutate(file, { onSuccess: (response) => onUploaded(response) });
   }
 
+  // Extraction can run successfully (HTTP 200, session token stored) while
+  // finding nothing usable in the file -- that's a different situation from
+  // a genuine success and must not be presented as "loaded". The session
+  // token is still stored either way via onUploaded above; only the message
+  // shown to the user differs.
+  const extractionFoundNothing =
+    upload.isSuccess && upload.data.extraction_confidence === "low" && upload.data.courses.length === 0;
+
   return (
     <div className="flex items-center gap-2 text-xs">
       <button
@@ -36,7 +44,14 @@ export function TranscriptUpload({ onUploaded }: TranscriptUploadProps) {
         onChange={handleChange}
       />
       {upload.isError && <span className="text-red-600">Couldn't read this file.</span>}
-      {upload.isSuccess && <span className="text-ink/50">Transcript loaded ✓</span>}
+      {extractionFoundNothing && (
+        <span className="text-amber-600">
+          Couldn't read this file clearly — try a clearer scan or a different file.
+        </span>
+      )}
+      {upload.isSuccess && !extractionFoundNothing && (
+        <span className="text-ink/50">Transcript loaded ✓</span>
+      )}
     </div>
   );
 }

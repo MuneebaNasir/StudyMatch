@@ -48,4 +48,30 @@ describe("TranscriptUpload", () => {
 
     await waitFor(() => expect(screen.getByText(/couldn't read this file/i)).toBeInTheDocument());
   });
+
+  it("shows a low-confidence message instead of the success state when extraction found nothing", async () => {
+    mswServer.use(
+      http.post(`${API_BASE_URL}/transcript`, () =>
+        HttpResponse.json({
+          session_token: "abc123", courses: [],
+          grade_value: null, grade_scale: null, nationality: null,
+          degree_field: null, extraction_confidence: "low",
+        }),
+      ),
+    );
+    const onUploaded = vi.fn();
+    render(<TranscriptUpload onUploaded={onUploaded} />, { wrapper });
+
+    const file = new File(["fake pdf bytes"], "blurry.pdf", { type: "application/pdf" });
+    const input = screen.getByLabelText(/upload transcript/i);
+    await userEvent.upload(input, file);
+
+    // The session token must still be stored -- a low-confidence, zero-course
+    // upload is still valid state -- but it must not be celebrated as loaded.
+    await waitFor(() =>
+      expect(onUploaded).toHaveBeenCalledWith(expect.objectContaining({ session_token: "abc123" })),
+    );
+    expect(screen.getByText(/couldn't read this file clearly/i)).toBeInTheDocument();
+    expect(screen.queryByText(/transcript loaded/i)).not.toBeInTheDocument();
+  });
 });
