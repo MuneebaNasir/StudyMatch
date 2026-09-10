@@ -4,10 +4,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 from typing import Literal
 
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
+from starlette.concurrency import run_in_threadpool
 
 from ..config import settings
 from ..db.models import Eligibility, Program
@@ -60,16 +61,50 @@ async def query(
 
 ALLOWED_TRANSCRIPT_CONTENT_TYPES = {"application/pdf", "image/png", "image/jpeg"}
 
+# Hard cap on upload size. A crafted PDF/image well past this can force a
+# huge pixmap allocation during rasterization or a slow vision-LLM call;
+# 10MB is generous for a transcript scan and keeps worst-case per-request
+# memory bounded on a Cloud Run instance shared with other in-flight
+# requests. Checked twice below: against the Content-Length header (a fast
+# reject when present) and again against the actual bytes read (authoritative
+# -- Content-Length is client-supplied and not guaranteed to be present or
+# accurate).
+MAX_TRANSCRIPT_UPLOAD_BYTES = 10 * 1024 * 1024
+
+# Leading bytes that verify a file's content actually matches its claimed
+# content-type, since `file.content_type` is a client-supplied multipart
+# header and fully attacker-controlled.
+TRANSCRIPT_MAGIC_BYTES = {
+    "application/pdf": b"%PDF-",
+    "image/png": b"\x89PNG",
+    "image/jpeg": b"\xff\xd8\xff",
+}
+
 
 @app.post("/transcript", response_model=TranscriptUploadResponse)
 async def upload_transcript(
-    file: UploadFile = File(...), session: AsyncSession = Depends(get_session)
+    request: Request, file: UploadFile = File(...), session: AsyncSession = Depends(get_session)
 ) -> TranscriptUploadResponse:
     if file.content_type not in ALLOWED_TRANSCRIPT_CONTENT_TYPES:
         raise HTTPException(status_code=415, detail="Unsupported file type; upload a PDF, PNG, or JPEG.")
 
+    content_length = request.headers.get("content-length")
+    if content_length is not None:
+        try:
+            if int(content_length) > MAX_TRANSCRIPT_UPLOAD_BYTES:
+                raise HTTPException(status_code=413, detail="File too large; max 10MB.")
+        except ValueError:
+            pass  # malformed header; fall through to the authoritative check below
+
     file_bytes = await file.read()
-    extraction = extract_transcript(file_bytes, file.content_type)
+    if len(file_bytes) > MAX_TRANSCRIPT_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="File too large; max 10MB.")
+
+    magic = TRANSCRIPT_MAGIC_BYTES[file.content_type]
+    if not file_bytes.startswith(magic):
+        raise HTTPException(status_code=415, detail="File content does not match its declared type.")
+
+    extraction = await run_in_threadpool(extract_transcript, file_bytes, file.content_type)
     token = await insert_transcript_profile(session, extraction)
 
     return TranscriptUploadResponse(
