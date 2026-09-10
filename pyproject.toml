@@ -32,6 +32,7 @@ dependencies = [
     "transformers>=4.44",
     "einops>=0.8",
     "pillow>=10.0",
+    "python-multipart>=0.0.9",
 ]
 
 [project.optional-dependencies]

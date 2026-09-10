@@ -4,7 +4,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name
 
 from typing import Literal
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,8 +12,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from ..config import settings
 from ..db.models import Eligibility, Program
 from ..db.session import async_session_factory
+from ..db.transcript_store import insert_transcript_profile
 from ..query_understanding.reasoner import reason_about_eligibility
 from ..query_understanding.schema import CandidateForReasoning, QueryRequest, QueryResponse, StudentProfile
+from ..transcript.extractor import extract_transcript
+from ..transcript.schema import TranscriptUploadResponse
 from .query import handle_query
 from .schemas import ProgramDetail, SearchRequest, SearchResponse
 from .search import filtered_search, hybrid_search, to_search_result
@@ -53,6 +56,31 @@ async def query(
     request: QueryRequest, session: AsyncSession = Depends(get_session)
 ) -> QueryResponse:
     return await handle_query(session, request.query, request.limit, request.offset, request.session_token)
+
+
+ALLOWED_TRANSCRIPT_CONTENT_TYPES = {"application/pdf", "image/png", "image/jpeg"}
+
+
+@app.post("/transcript", response_model=TranscriptUploadResponse)
+async def upload_transcript(
+    file: UploadFile = File(...), session: AsyncSession = Depends(get_session)
+) -> TranscriptUploadResponse:
+    if file.content_type not in ALLOWED_TRANSCRIPT_CONTENT_TYPES:
+        raise HTTPException(status_code=415, detail="Unsupported file type; upload a PDF, PNG, or JPEG.")
+
+    file_bytes = await file.read()
+    extraction = extract_transcript(file_bytes, file.content_type)
+    token = await insert_transcript_profile(session, extraction)
+
+    return TranscriptUploadResponse(
+        session_token=token,
+        courses=extraction.courses,
+        grade_value=extraction.grade_value,
+        grade_scale=extraction.grade_scale,
+        nationality=extraction.nationality,
+        degree_field=extraction.degree_field,
+        extraction_confidence=extraction.extraction_confidence,
+    )
 
 
 @app.get("/programs/{program_id}", response_model=ProgramDetail)
