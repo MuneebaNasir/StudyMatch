@@ -1,5 +1,6 @@
 import logging
 
+from ..config import settings
 from .llm import build_image_message, get_vision_fallback_llm
 from .local_vlm import extract_with_local_vlm
 from .rasterize import file_to_page_images
@@ -29,7 +30,11 @@ def extract_transcript(file_bytes: bytes, content_type: str) -> TranscriptExtrac
         if result is not None:
             return result
     except Exception:
-        logger.exception("Vision fallback chain failed for transcript extraction; trying local VLM")
+        logger.exception("Vision fallback chain failed for transcript extraction")
+
+    if not settings.enable_local_vlm_fallback:
+        logger.warning("Local VLM fallback is disabled (enable_local_vlm_fallback=False); returning low-confidence result")
+        return TranscriptExtraction(extraction_confidence="low")
 
     try:
         return extract_with_local_vlm(page_images)

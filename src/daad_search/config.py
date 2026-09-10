@@ -24,6 +24,14 @@ class Settings(BaseSettings):
     # chain risks incurring real charges the moment the free tiers are
     # exhausted, without anyone choosing that to happen.
     openai_api_key: str = ""
+    # Off by default. The local VLM fallback (transcript/local_vlm.py) lazily
+    # loads a ~3.7GB HuggingFace vision model at request time as a
+    # last-resort when every vision LLM API in the fallback chain fails. On a
+    # scale-to-zero Cloud Run instance, the HuggingFace cache directory is
+    # tmpfs (RAM), so this either OOMs the instance or blocks for minutes
+    # downloading + loading the model -- and it fires exactly when things are
+    # already going wrong. Flip this on only after load-testing that path.
+    enable_local_vlm_fallback: bool = False
     # Origins allowed to call this API cross-origin. Vite's default dev port
     # is 5173 -- the frontend's dev server runs there unless overridden.
     cors_allowed_origins: list[str] = ["http://localhost:5173"]
