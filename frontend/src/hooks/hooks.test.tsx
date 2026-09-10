@@ -9,6 +9,7 @@ import { useEvaluateEligibility } from "./useEvaluateEligibility";
 import { useFilteredSearch } from "./useFilteredSearch";
 import { useProgramDetail } from "./useProgramDetail";
 import { useQuerySearch } from "./useQuerySearch";
+import { useTranscriptUpload } from "./useTranscriptUpload";
 
 const API_BASE_URL = "http://localhost:8000";
 
@@ -47,6 +48,42 @@ describe("useQuerySearch", () => {
     const { result } = renderHook(() => useQuerySearch(), { wrapper });
 
     await result.current.mutateAsync({ query: "robotics masters", offset: 20 });
+  });
+
+  it("posts the session token when provided", async () => {
+    mswServer.use(
+      http.post(`${API_BASE_URL}/query`, async ({ request }) => {
+        const body = (await request.json()) as { session_token: string | null };
+        expect(body.session_token).toBe("abc123");
+        return HttpResponse.json({
+          results: [], total_matched: 0, extracted_filters: null, extracted_profile: null,
+          extracted_courses: null, semantic_query: null,
+        });
+      }),
+    );
+    const { result } = renderHook(() => useQuerySearch(), { wrapper });
+
+    await result.current.mutateAsync({ query: "robotics masters", offset: 0, sessionToken: "abc123" });
+  });
+});
+
+describe("useTranscriptUpload", () => {
+  it("uploads a file and exposes the parsed response", async () => {
+    mswServer.use(
+      http.post(`${API_BASE_URL}/transcript`, () =>
+        HttpResponse.json({
+          session_token: "abc123", courses: [{ name: "Linear Algebra", grade: "A" }],
+          grade_value: 3.8, grade_scale: "4.0 GPA", nationality: "Pakistan",
+          degree_field: "Computer Science", extraction_confidence: "high",
+        }),
+      ),
+    );
+    const { result } = renderHook(() => useTranscriptUpload(), { wrapper });
+
+    const file = new File([new Blob(["fake"])], "transcript.pdf", { type: "application/pdf" });
+    const response = await result.current.mutateAsync(file);
+
+    expect(response.session_token).toBe("abc123");
   });
 });
 

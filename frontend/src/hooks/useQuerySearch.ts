@@ -4,6 +4,7 @@ import { postQuery } from "../api/client";
 
 export function useQuerySearch() {
   return useMutation({
-    mutationFn: ({ query, offset }: { query: string; offset: number }) => postQuery(query, offset),
+    mutationFn: ({ query, offset, sessionToken }: { query: string; offset: number; sessionToken?: string | null }) =>
+      postQuery(query, offset, 20, sessionToken ?? null),
   });
 }
