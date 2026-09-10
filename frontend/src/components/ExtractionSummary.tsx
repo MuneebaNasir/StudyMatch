@@ -1,4 +1,4 @@
-import type { SearchFilters, StudentProfile } from "../types";
+import type { ExtractedCourse, SearchFilters, StudentProfile } from "../types";
 
 interface FilterChip {
   key: keyof SearchFilters;
@@ -54,14 +54,19 @@ function buildProfileChips(profile: StudentProfile): string[] {
   return chips;
 }
 
+function buildCourseChips(courses: ExtractedCourse[]): string[] {
+  return courses.map((course) => (course.grade ? `${course.name} (${course.grade})` : course.name));
+}
+
 interface ExtractionSummaryProps {
   filters: SearchFilters | null;
   profile: StudentProfile | null;
+  courses?: ExtractedCourse[] | null;
   onFiltersChange: (filters: SearchFilters) => void;
 }
 
-export function ExtractionSummary({ filters, profile, onFiltersChange }: ExtractionSummaryProps) {
-  if (filters === null && profile === null) {
+export function ExtractionSummary({ filters, profile, courses = null, onFiltersChange }: ExtractionSummaryProps) {
+  if (filters === null && profile === null && courses === null) {
     return (
       <p className="text-sm text-ink/70">
         Couldn't extract structured details from your query, showing closest matches instead.
@@ -71,6 +76,7 @@ export function ExtractionSummary({ filters, profile, onFiltersChange }: Extract
 
   const filterChips = filters ? buildFilterChips(filters) : [];
   const profileChips = profile ? buildProfileChips(profile) : [];
+  const courseChips = courses ? buildCourseChips(courses) : [];
 
   function removeFilterChip(key: keyof SearchFilters) {
     if (!filters) return;
@@ -100,6 +106,11 @@ export function ExtractionSummary({ filters, profile, onFiltersChange }: Extract
           key={label}
           className="inline-flex items-center rounded-full bg-line/40 px-3 py-1 text-xs text-ink/70"
         >
+          {label}
+        </span>
+      ))}
+      {courseChips.map((label) => (
+        <span key={label} className="inline-flex items-center rounded-full bg-line/20 px-3 py-1 text-xs text-ink/60">
           {label}
         </span>
       ))}

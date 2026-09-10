@@ -83,4 +83,18 @@ describe("ExtractionSummary", () => {
     render(<ExtractionSummary filters={null} profile={null} onFiltersChange={vi.fn()} />);
     expect(screen.getByText(/couldn't extract structured details/i)).toBeInTheDocument();
   });
+
+  it("renders a chip per completed course when courses are provided", () => {
+    render(
+      <ExtractionSummary
+        filters={null}
+        profile={null}
+        courses={[{ name: "Linear Algebra", grade: "A" }, { name: "Data Structures", grade: null }]}
+        onFiltersChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Linear Algebra (A)")).toBeInTheDocument();
+    expect(screen.getByText("Data Structures")).toBeInTheDocument();
+  });
 });
