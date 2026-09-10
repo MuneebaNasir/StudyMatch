@@ -13,6 +13,13 @@ SESSION_TTL = timedelta(hours=24)
 async def insert_transcript_profile(session: AsyncSession, extraction: TranscriptExtraction) -> str:
     token = str(uuid.uuid4())
     now = datetime.now(timezone.utc)
+    # Opportunistic cleanup of expired rows. The read path
+    # (get_valid_transcript_profile) only deletes an expired row when someone
+    # tries to read that exact token again, which never happens for the
+    # dominant usage pattern (upload once, never re-query). Piggybacking a
+    # bulk delete on every insert makes cleanup self-amortizing with no cron
+    # needed.
+    await session.execute(delete(TranscriptProfile).where(TranscriptProfile.expires_at < now))
     session.add(TranscriptProfile(
         session_token=token,
         courses=[c.model_dump() for c in extraction.courses],

@@ -65,3 +65,27 @@ def test_unknown_token_reads_back_as_none(test_session_factory):
             return await get_valid_transcript_profile(session, "does-not-exist")
 
     assert asyncio.run(_run()) is None
+
+
+def test_insert_transcript_profile_cleans_up_expired_rows(test_session_factory):
+    """insert_transcript_profile must bulk-delete expired rows as a side
+    effect, since the read path only cleans up a row when someone re-reads
+    that exact token -- the dominant usage pattern (upload once, never
+    re-query) would otherwise let expired rows accumulate forever."""
+
+    async def _run():
+        async with test_session_factory() as session:
+            now = datetime.now(timezone.utc)
+            session.add(TranscriptProfile(
+                session_token="stale-token", courses=[],
+                created_at=now - timedelta(hours=48), expires_at=now - timedelta(hours=24),
+            ))
+            await session.commit()
+
+        async with test_session_factory() as session:
+            await insert_transcript_profile(
+                session, TranscriptExtraction(extraction_confidence="low")
+            )
+            return await session.get(TranscriptProfile, "stale-token")
+
+    assert asyncio.run(_run()) is None
