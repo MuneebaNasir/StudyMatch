@@ -6,11 +6,12 @@ import { ExtractionSummary } from "./components/ExtractionSummary";
 import { Header } from "./components/Header";
 import { Pagination } from "./components/Pagination";
 import { ResultsList } from "./components/ResultsList";
+import { TranscriptUpload } from "./components/TranscriptUpload";
 import { useFilteredSearch } from "./hooks/useFilteredSearch";
 import { useProgramDetail } from "./hooks/useProgramDetail";
 import { useQuerySearch } from "./hooks/useQuerySearch";
 import { buildVerdictMap, mergeVerdicts, type VerdictInfo } from "./lib/mergeVerdicts";
-import type { EligibilityVerdictValue, QueryResponse, SearchFilters, SearchResult } from "./types";
+import type { EligibilityVerdictValue, QueryResponse, SearchFilters, SearchResult, TranscriptUploadResponse } from "./types";
 
 const PAGE_SIZE = 20;
 
@@ -39,6 +40,14 @@ export default function App() {
   const [offset, setOffset] = useState(0);
   const [totalMatched, setTotalMatched] = useState(0);
   const [pageCache, setPageCache] = useState<Map<number, QueryResponse>>(new Map());
+  const [sessionToken, setSessionToken] = useState<string | null>(
+    () => localStorage.getItem("transcriptSessionToken"),
+  );
+
+  function handleTranscriptUploaded(response: TranscriptUploadResponse) {
+    setSessionToken(response.session_token);
+    localStorage.setItem("transcriptSessionToken", response.session_token);
+  }
 
   const querySearch = useQuerySearch();
   const filteredSearch = useFilteredSearch();
@@ -69,7 +78,7 @@ export default function App() {
       return;
     }
     querySearch.mutate(
-      { query, offset },
+      { query, offset, sessionToken },
       {
         onSuccess: (response) => {
           setPageCache((previous) => new Map(previous).set(offset, response));
@@ -168,6 +177,7 @@ export default function App() {
     <main className="mx-auto max-w-3xl space-y-6 p-6">
       <div className="relative overflow-hidden rounded-3xl bg-accent-soft p-6 sm:p-8 space-y-4">
         <Header />
+        <TranscriptUpload onUploaded={handleTranscriptUploaded} />
         <ChatQueryBox onSubmit={handleSubmit} isPending={querySearch.isPending} />
       </div>
 
@@ -187,6 +197,7 @@ export default function App() {
               <ExtractionSummary
                 filters={activeFilters}
                 profile={queryResponse.extracted_profile}
+                courses={queryResponse.extracted_courses}
                 onFiltersChange={handleFiltersChange}
               />
               <button

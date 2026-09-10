@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 
 import App from "./App";
 import { mswServer } from "./test/mswServer";
@@ -37,7 +37,38 @@ const QUERY_RESPONSE = {
   semantic_query: "robotics",
 };
 
+beforeEach(() => {
+  localStorage.clear();
+});
+
 describe("App", () => {
+  it("uploads a transcript, then sends its session token on the next query", async () => {
+    mswServer.use(
+      http.post(`${API_BASE_URL}/transcript`, () =>
+        HttpResponse.json({
+          session_token: "abc123", courses: [{ name: "Linear Algebra", grade: "A" }],
+          grade_value: 3.8, grade_scale: "4.0 GPA", nationality: "Pakistan",
+          degree_field: "Computer Science", extraction_confidence: "high",
+        }),
+      ),
+      http.post(`${API_BASE_URL}/query`, async ({ request }) => {
+        const body = (await request.json()) as { session_token: string | null };
+        expect(body.session_token).toBe("abc123");
+        return HttpResponse.json(QUERY_RESPONSE);
+      }),
+    );
+    renderApp();
+
+    const file = new File(["fake pdf bytes"], "transcript.pdf", { type: "application/pdf" });
+    const input = screen.getByLabelText(/upload transcript/i);
+    await userEvent.upload(input, file);
+    await waitFor(() => expect(screen.getByText(/transcript loaded/i)).toBeInTheDocument());
+
+    await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
+
+    await waitFor(() => expect(screen.getByText("Robotics Engineering MSc")).toBeInTheDocument());
+  });
+
   it("submits a query, renders results, edits a chip to re-search, and opens the admission guide drawer", async () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/query`, () => HttpResponse.json(QUERY_RESPONSE)),
