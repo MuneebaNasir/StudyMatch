@@ -30,6 +30,7 @@ export function TranscriptUpload({ onUploaded }: TranscriptUploadProps) {
       <input
         ref={inputRef}
         type="file"
+        accept="application/pdf,image/png,image/jpeg"
         aria-label="Upload transcript"
         className="hidden"
         onChange={handleChange}

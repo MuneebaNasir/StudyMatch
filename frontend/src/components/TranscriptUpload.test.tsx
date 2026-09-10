@@ -42,7 +42,7 @@ describe("TranscriptUpload", () => {
     mswServer.use(http.post(`${API_BASE_URL}/transcript`, () => new HttpResponse(null, { status: 415 })));
     render(<TranscriptUpload onUploaded={vi.fn()} />, { wrapper });
 
-    const file = new File(["not a transcript"], "notes.txt", { type: "text/plain" });
+    const file = new File(["not a transcript"], "corrupt.pdf", { type: "application/pdf" });
     const input = screen.getByLabelText(/upload transcript/i);
     await userEvent.upload(input, file);
 
