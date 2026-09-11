@@ -96,7 +96,7 @@ async def upload_transcript(
         except ValueError:
             pass  # malformed header; fall through to the authoritative check below
 
-    file_bytes = await file.read()
+    file_bytes = await file.read(MAX_TRANSCRIPT_UPLOAD_BYTES + 1)
     if len(file_bytes) > MAX_TRANSCRIPT_UPLOAD_BYTES:
         raise HTTPException(status_code=413, detail="File too large; max 10MB.")
 

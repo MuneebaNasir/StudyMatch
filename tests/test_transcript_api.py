@@ -49,6 +49,53 @@ def test_upload_transcript_rejects_a_file_over_the_size_cap(api_client, monkeypa
     assert response.status_code == 413
 
 
+def test_upload_transcript_read_is_bounded_by_size_argument(api_client, monkeypatch):
+    """The actual body read must be bounded via `UploadFile.read(size=...)`,
+    not an unbounded `file.read()` -- otherwise an attacker who omits or
+    understates Content-Length can still force an arbitrarily large
+    in-memory allocation before the length check ever runs. This asserts
+    the read call itself is passed a fixed, bounded size (one more than the
+    cap, to distinguish "at the cap" from "over"), independent of whatever
+    Content-Length the client claims."""
+    from starlette.datastructures import UploadFile
+
+    captured_sizes = []
+    original_read = UploadFile.read
+
+    async def _tracking_read(self, size=-1):
+        captured_sizes.append(size)
+        return await original_read(self, size)
+
+    monkeypatch.setattr(UploadFile, "read", _tracking_read)
+
+    response = api_client.post(
+        "/transcript", files={"file": ("transcript.pdf", io.BytesIO(b"%PDF-1.4 fake"), "application/pdf")},
+    )
+
+    assert response.status_code == 200
+    assert captured_sizes == [main_module.MAX_TRANSCRIPT_UPLOAD_BYTES + 1]
+
+
+def test_upload_transcript_rejects_oversized_body_with_understated_content_length(api_client, monkeypatch):
+    """An attacker can send a Content-Length header that understates (or
+    omits) the true body size -- the fast-reject check above the read only
+    catches an honestly-declared oversized upload. The authoritative check
+    is the bounded read itself, so this must still 413 even when
+    Content-Length lies about being small."""
+    monkeypatch.setattr(main_module, "MAX_TRANSCRIPT_UPLOAD_BYTES", 10)
+
+    oversized_body = b"%PDF-1.4 way more than ten bytes"
+    response = api_client.post(
+        "/transcript",
+        files={"file": ("transcript.pdf", io.BytesIO(oversized_body), "application/pdf")},
+        # Lies: claims 1 byte while the actual multipart body carrying the
+        # file is far larger than the 10-byte cap set above.
+        headers={"content-length": "1"},
+    )
+
+    assert response.status_code == 413
+
+
 def test_upload_transcript_rejects_content_that_does_not_match_declared_type(api_client):
     # Claims PNG but the bytes are plainly not a PNG -- content_type is a
     # client-supplied multipart header and not to be trusted on its own.
