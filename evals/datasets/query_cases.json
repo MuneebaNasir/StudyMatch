@@ -1,0 +1,130 @@
+[
+  {
+    "id": "q01-masters-template",
+    "query": "I am looking for a [Master's] program in [AI, agentic AI, and large language models], taught in [English], with [no tuition fees], near [Bonn].\n\nI have a [Bachelor's degree in Computer Science] with a [3.2 GPA on a 4.0 scale] from [Pakistan], and an [IELTS score of 7.0].",
+    "expected_filters": {
+      "course_type": 2,
+      "languages": [
+        "English"
+      ],
+      "max_tuition_free_only": true,
+      "city": "Bonn",
+      "subject": null
+    },
+    "expected_profile": {
+      "grade_value": 3.2,
+      "nationality": "Pakistan"
+    }
+  },
+  {
+    "id": "q02-phd-template",
+    "query": "I am looking for a [PhD] position in [machine learning and natural language processing], taught in [English], with [no tuition fees], near [Saarbrücken].\n\nI have a [Master's degree in Computer Science] with a [1.7 grade on the German scale] from [Nigeria], [2 years of research experience in NLP], and an [IELTS score of 7.5].",
+    "expected_filters": {
+      "course_type": 3,
+      "languages": [
+        "English"
+      ],
+      "max_tuition_free_only": true,
+      "city": "Saarbrücken"
+    },
+    "expected_profile": {
+      "grade_value": 1.7,
+      "nationality": "Nigeria"
+    }
+  },
+  {
+    "id": "q03-bachelors-template",
+    "query": "I am looking for a [Bachelor's] program in [computer science or data science], taught in [English], with [no tuition fees], near [Hamburg].\n\nI completed [high school / Abitur-equivalent] with a [grade of 85%] in [India], and an [IELTS score of 6.5].",
+    "expected_filters": {
+      "course_type": 1,
+      "languages": [
+        "English"
+      ],
+      "max_tuition_free_only": true,
+      "city": "Hamburg"
+    },
+    "expected_profile": {
+      "grade_value": 85.0,
+      "nationality": "India"
+    }
+  },
+  {
+    "id": "q04-german-taught-munich",
+    "query": "I'm looking for a Master's in Mechanical Engineering taught in German, near Munich.",
+    "expected_filters": {
+      "course_type": 2,
+      "languages": [
+        "German"
+      ],
+      "city": "München",
+      "subject": "Mechanical Engineering"
+    },
+    "expected_profile": {}
+  },
+  {
+    "id": "q05-tuition-ok",
+    "query": "Master's in data science in Berlin, I don't mind paying tuition fees.",
+    "expected_filters": {
+      "course_type": 2,
+      "city": "Berlin",
+      "max_tuition_free_only": null
+    },
+    "expected_profile": {}
+  },
+  {
+    "id": "q06-vague",
+    "query": "something with computers in Germany",
+    "expected_filters": {
+      "city": null,
+      "course_type": null,
+      "subject": null
+    },
+    "expected_profile": {}
+  },
+  {
+    "id": "q07-background-only",
+    "query": "I have a Bachelor's in Physics with a 78% average, and I'm from Kenya.",
+    "expected_filters": {
+      "city": null,
+      "course_type": null
+    },
+    "expected_profile": {
+      "grade_value": 78.0,
+      "nationality": "Kenya"
+    }
+  },
+  {
+    "id": "q08-background-vs-wish-city",
+    "query": "I did my Bachelor's in Berlin and now I want to do a Master's in Cologne.",
+    "expected_filters": {
+      "city": "Köln",
+      "course_type": 2
+    },
+    "expected_profile": {}
+  },
+  {
+    "id": "q09-ai-subject-not-exact-filter",
+    "query": "Master's in AI and large language models in Bonn, taught in English",
+    "expected_filters": {
+      "course_type": 2,
+      "languages": [
+        "English"
+      ],
+      "city": "Bonn",
+      "subject": null
+    },
+    "expected_profile": {}
+  },
+  {
+    "id": "q10-short-course",
+    "query": "Any English-taught short course or summer school in Heidelberg?",
+    "expected_filters": {
+      "course_type": 6,
+      "languages": [
+        "English"
+      ],
+      "city": "Heidelberg"
+    },
+    "expected_profile": {}
+  }
+]

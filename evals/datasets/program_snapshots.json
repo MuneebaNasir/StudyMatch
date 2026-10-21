@@ -1,0 +1,338 @@
+[
+  {
+    "program_id": 3622,
+    "course_name": "Life Science Informatics (b-it)",
+    "structured_eligibility": {
+      "notes": null,
+      "requires_gre": false,
+      "requires_gmat": null,
+      "min_german_level": null,
+      "grade_requirement": {
+        "scale": null,
+        "value": null,
+        "source_quote": "Candidates should have performed well above average in their undergraduate studies."
+      },
+      "min_english_level": "B2",
+      "standardized_tests": [
+        {
+          "test": "GRE",
+          "waiver": null,
+          "required": false,
+          "subscores": [],
+          "source_quote": "The Graduate Record Examination (GRE) is strongly recommended.",
+          "eligibility_condition": null
+        }
+      ],
+      "degree_prerequisite": {
+        "description": "Bachelor of Science or Engineering in biology, medicine, pharmaceutics or computer science, or another closely related discipline",
+        "source_quote": "Candidates must hold a first degree awarded by an internationally recognised, university-level institution (Bachelor of Science or Engineering) in biology, medicine, pharmaceutics or computer science, or another closely related discipline."
+      },
+      "extraction_confidence": "high",
+      "language_requirements": [
+        {
+          "level": "B2",
+          "language": "English",
+          "source_quote": "B2 required, please provide an official language certificate, e.g.: IELTS Academic: 6",
+          "accepted_tests": [
+            {
+              "min_score": "6",
+              "test_name": "IELTS Academic"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "program_id": 3624,
+    "course_name": "Computer Science (MSc)",
+    "structured_eligibility": {
+      "notes": null,
+      "requires_gre": true,
+      "requires_gmat": null,
+      "min_german_level": null,
+      "grade_requirement": {
+        "scale": null,
+        "value": 75.0,
+        "source_quote": "Bachelor's degree in computer science or a related field, with a grade of at least 75%; completed online application form plus the following mandatory requirements:"
+      },
+      "min_english_level": "C1",
+      "standardized_tests": [
+        {
+          "test": "GRE",
+          "waiver": null,
+          "required": true,
+          "subscores": [],
+          "source_quote": "GRE Test / Gate Test",
+          "eligibility_condition": null
+        }
+      ],
+      "degree_prerequisite": {
+        "description": "Bachelor's degree in computer science or a related field, with a grade of at least 75%",
+        "source_quote": "Bachelor's degree in computer science or a related field, with a grade of at least 75%; completed online application form plus the following mandatory requirements:"
+      },
+      "extraction_confidence": "high",
+      "language_requirements": [
+        {
+          "level": "C1",
+          "language": "English",
+          "source_quote": "C1 required, please provide an official language certificate, e.g.: PTE Academic: 76 TOEFL iBT (before 2026): 95 Reading: 24 Listening: 22 Speaking: 25 Writing: 24 Cambridge English Qualifications: C1 Advanced IELTS Academic: 7",
+          "accepted_tests": [
+            {
+              "min_score": "76",
+              "test_name": "PTE Academic"
+            },
+            {
+              "min_score": "95",
+              "test_name": "TOEFL iBT"
+            },
+            {
+              "min_score": "C1 Advanced",
+              "test_name": "Cambridge English Qualifications"
+            },
+            {
+              "min_score": "7",
+              "test_name": "IELTS Academic"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "program_id": 3636,
+    "course_name": "Master's in European Economic Studies (MSc in EES)",
+    "structured_eligibility": {
+      "notes": null,
+      "requires_gre": null,
+      "requires_gmat": null,
+      "min_german_level": null,
+      "grade_requirement": {
+        "scale": "German grading system",
+        "value": 2.5,
+        "source_quote": "Bachelor's degree in European Economic Studies (EES) or a comparable degree in economic, social or natural sciences or mathematics with a grade of at least 2.5 (German grading system)"
+      },
+      "min_english_level": "B2",
+      "standardized_tests": [],
+      "degree_prerequisite": {
+        "description": "Bachelor's degree in European Economic Studies (EES) or a comparable degree in economic, social or natural sciences or mathematics",
+        "source_quote": "Bachelor's degree in European Economic Studies (EES) or a comparable degree in economic, social or natural sciences or mathematics with a grade of at least 2.5 (German grading system)"
+      },
+      "extraction_confidence": "high",
+      "language_requirements": [
+        {
+          "level": "B2",
+          "language": "English",
+          "source_quote": "B2 required, please provide an official language certificate, e.g.: telc English: telc English B2 TOEFL iBT (before 2026): 80 Reading: 20 Listening: 20 Speaking: 20 Writing: 20 IELTS Academic: 6.5",
+          "accepted_tests": [
+            {
+              "min_score": "B2",
+              "test_name": "telc English"
+            },
+            {
+              "min_score": "80",
+              "test_name": "TOEFL iBT"
+            },
+            {
+              "min_score": "6.5",
+              "test_name": "IELTS Academic"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "program_id": 3686,
+    "course_name": "Global Software Development (MSc)",
+    "structured_eligibility": {
+      "notes": null,
+      "requires_gre": null,
+      "requires_gmat": null,
+      "min_german_level": "A1",
+      "grade_requirement": {
+        "scale": "German grading scale",
+        "value": 2.5,
+        "source_quote": "good grades (equivalent to German grade 2.5 or better)"
+      },
+      "min_english_level": "B2",
+      "standardized_tests": [],
+      "degree_prerequisite": {
+        "description": "University degree equivalent to at least a Bachelor's degree (180 or 210 ECTS) in computer sciences or related disciplines and good grades (equivalent to German grade 2.5 or better). If you have a Bachelor's degree with 180 ECTS, you have to earn an additional 30 ECTS during your studies.",
+        "source_quote": "University degree equivalent to at least a Bachelor's degree (180 or 210 ECTS) in computer sciences or related disciplines and good grades (equivalent to German grade 2.5 or better). If you have a Bachelor's degree with 180 ECTS, you have to earn an additional 30 ECTS during your studies."
+      },
+      "extraction_confidence": "high",
+      "language_requirements": [
+        {
+          "level": "A1",
+          "language": "German",
+          "source_quote": "A1 required, please provide an official language certificate, e.g.:\ntelc Deutsch: telc Deutsch A1\nÖSD Zertifikat: A1\nGoethe-Zertifikat: Goethe-Zertifikat A1",
+          "accepted_tests": [
+            {
+              "min_score": "A1",
+              "test_name": "telc Deutsch"
+            },
+            {
+              "min_score": "A1",
+              "test_name": "ÖSD Zertifikat"
+            },
+            {
+              "min_score": "A1",
+              "test_name": "Goethe-Zertifikat"
+            }
+          ]
+        },
+        {
+          "level": "B2",
+          "language": "English",
+          "source_quote": "B2 required, please provide an official language certificate, e.g.:\nTOEFL iBT Home Edition (before 2026): 85\nReading: 18\nListening: 17\nSpeaking: 20\nWriting: 17\nTOEFL iBT (before 2026): 85\nReading: 18\nListening: 17\nSpeaking: 20\nWriting: 17\nIELTS Academic: 6.5",
+          "accepted_tests": [
+            {
+              "min_score": "85 (Reading: 18, Listening: 17, Speaking: 20, Writing: 17)",
+              "test_name": "TOEFL iBT Home Edition (before 2026)"
+            },
+            {
+              "min_score": "85 (Reading: 18, Listening: 17, Speaking: 20, Writing: 17)",
+              "test_name": "TOEFL iBT (before 2026)"
+            },
+            {
+              "min_score": "6.5",
+              "test_name": "IELTS Academic"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "program_id": 3736,
+    "course_name": "Master of Science in Computer Science",
+    "structured_eligibility": {
+      "notes": "Applicants should have a strong background in theoretical computer science, including topics such as Formal languages and automata theory, Computability theory, Graph theory and combinatorial optimisation, and Algorithmic analysis and design. Demonstrated competence in these areas is one of the key admission prerequisites.",
+      "requires_gre": null,
+      "requires_gmat": null,
+      "min_german_level": null,
+      "grade_requirement": {
+        "scale": null,
+        "value": null,
+        "source_quote": "The programme is intended for candidates who hold a Bachelor’s degree in one of the following fields Computer Science Computer Engineering Informatics Mathematics Information Technology with an excellent cumulative GPA / final grade."
+      },
+      "min_english_level": "C1",
+      "standardized_tests": [],
+      "degree_prerequisite": {
+        "description": "A Bachelor’s degree in Computer Science, Computer Engineering, Informatics, Mathematics, or Information Technology with an excellent cumulative GPA / final grade.",
+        "source_quote": "The programme is intended for candidates who hold a Bachelor’s degree in one of the following fields Computer Science Computer Engineering Informatics Mathematics Information Technology with an excellent cumulative GPA / final grade."
+      },
+      "extraction_confidence": "high",
+      "language_requirements": [
+        {
+          "level": "C1",
+          "language": "English",
+          "source_quote": "C1 required, please provide an official language certificate, e.g.: UNIcert® English: UNIcert® III TOEFL Essentials: 10 Reading: 10 Listening: 10 Speaking: 10 Writing: 10 TOEFL iBT Home Edition (since 2026): 5 Reading: 5 Listening: 5 Speaking: 5 Writing: 5 TOEFL iBT (before 2026): 95 Reading: 24 Listening: 22 Speaking: 25 Writing: 24 PTE Academic: 76 IELTS Academic: 7 Cambridge English Qualifications: C1 Advanced",
+          "accepted_tests": [
+            {
+              "min_score": "UNIcert® III",
+              "test_name": "UNIcert® English"
+            },
+            {
+              "min_score": "10 (Reading: 10, Listening: 10, Speaking: 10, Writing: 10)",
+              "test_name": "TOEFL Essentials"
+            },
+            {
+              "min_score": "5 (Reading: 5, Listening: 5, Speaking: 5, Writing: 5)",
+              "test_name": "TOEFL iBT Home Edition (since 2026)"
+            },
+            {
+              "min_score": "95 (Reading: 24, Listening: 22, Speaking: 25, Writing: 24)",
+              "test_name": "TOEFL iBT (before 2026)"
+            },
+            {
+              "min_score": "76",
+              "test_name": "PTE Academic"
+            },
+            {
+              "min_score": "7",
+              "test_name": "IELTS Academic"
+            },
+            {
+              "min_score": "C1 Advanced",
+              "test_name": "Cambridge English Qualifications"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "program_id": 3960,
+    "course_name": "Software Engineering (SEM)",
+    "structured_eligibility": {
+      "notes": "Candidates with 180 ECTS credits can acquire an extra 30 ECTS credits in appropriate Bachelor's programmes at Heilbronn University. Applicants with a non-Computer Science degree (210 ECTS) must provide proof of vocational experience in Computer Science acquired in the previous three years.",
+      "requires_gre": null,
+      "requires_gmat": null,
+      "min_german_level": "A2 required/recommended, no proof required",
+      "grade_requirement": {
+        "scale": "German grading scale (1.0 being the best, 4.0 being sufficient)",
+        "value": 2.5,
+        "source_quote": "An excellent or good German (average grade of 2.5 or less) or European Bachelor's degree (210 or 240 ECTS credits) or an equivalent international qualification (attested by Studienkolleg Konstanz (\"SK\", former: \"ASK\") certificate) in Computer Science or a closely-related field."
+      },
+      "min_english_level": "B2 required, please provide an official language certificate, e.g.: IELTS Academic: 6",
+      "standardized_tests": [],
+      "degree_prerequisite": {
+        "description": "An excellent or good German (average grade of 2.5 or less) or European Bachelor's degree (210 or 240 ECTS credits) or an equivalent international qualification (attested by Studienkolleg Konstanz (\"SK\", former: \"ASK\") certificate) in Computer Science or a closely-related field.",
+        "source_quote": "An excellent or good German (average grade of 2.5 or less) or European Bachelor's degree (210 or 240 ECTS credits) or an equivalent international qualification (attested by Studienkolleg Konstanz (\"SK\", former: \"ASK\") certificate) in Computer Science or a closely-related field."
+      },
+      "extraction_confidence": "high",
+      "language_requirements": [
+        {
+          "level": "A2",
+          "language": "German",
+          "source_quote": "A2 required/recommended, no proof required",
+          "accepted_tests": []
+        },
+        {
+          "level": "B2",
+          "language": "English",
+          "source_quote": "B2 required, please provide an official language certificate, e.g.: IELTS Academic: 6",
+          "accepted_tests": [
+            {
+              "min_score": "6",
+              "test_name": "IELTS Academic"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  {
+    "program_id": 7600,
+    "course_name": "Agricultural Sciences and Resource Management in the Tropics and Subtropics (ARTS)",
+    "structured_eligibility": {
+      "notes": "At least two years of working experience in agriculture is desirable but not explicitly required as a formal criterion. Application must be submitted through the online platform.",
+      "requires_gre": null,
+      "requires_gmat": null,
+      "min_german_level": null,
+      "grade_requirement": null,
+      "min_english_level": "C1",
+      "standardized_tests": [],
+      "degree_prerequisite": {
+        "description": "Bachelor's degree in Agricultural Sciences or in a field related to the postgraduate course with an above-average grade from a university/college",
+        "source_quote": "Bachelor's degree in Agricultural Sciences or in a field related to the postgraduate course with an above-average grade from a university/college"
+      },
+      "extraction_confidence": "high",
+      "language_requirements": [
+        {
+          "level": "C1",
+          "language": "English",
+          "source_quote": "C1 required, please provide an official language certificate, e.g.: IELTS Academic: 6.5",
+          "accepted_tests": [
+            {
+              "min_score": "6.5",
+              "test_name": "IELTS Academic"
+            }
+          ]
+        }
+      ]
+    }
+  }
+]

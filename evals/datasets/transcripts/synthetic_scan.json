@@ -1,0 +1,85 @@
+{
+  "courses": [
+    {
+      "name": "Introduction to Programming",
+      "grade": "C"
+    },
+    {
+      "name": "Calculus I",
+      "grade": "A"
+    },
+    {
+      "name": "Discrete Mathematics",
+      "grade": "C"
+    },
+    {
+      "name": "Academic Writing",
+      "grade": "C"
+    },
+    {
+      "name": "Object Oriented Programming",
+      "grade": "C+"
+    },
+    {
+      "name": "Linear Algebra",
+      "grade": "B"
+    },
+    {
+      "name": "Data Structures",
+      "grade": "D"
+    },
+    {
+      "name": "Digital Logic Design",
+      "grade": "C"
+    },
+    {
+      "name": "Database Systems",
+      "grade": "C"
+    },
+    {
+      "name": "Probability and Statistics",
+      "grade": "A"
+    },
+    {
+      "name": "Computer Architecture",
+      "grade": "B"
+    },
+    {
+      "name": "Operating Systems",
+      "grade": "A"
+    },
+    {
+      "name": "Design and Analysis of Algorithms",
+      "grade": "A"
+    },
+    {
+      "name": "Computer Networks",
+      "grade": "A"
+    },
+    {
+      "name": "Software Engineering",
+      "grade": "A-"
+    },
+    {
+      "name": "Theory of Computation",
+      "grade": "D"
+    },
+    {
+      "name": "Machine Learning",
+      "grade": "C"
+    },
+    {
+      "name": "Information Security",
+      "grade": "A-"
+    },
+    {
+      "name": "Entrepreneurship",
+      "grade": "A-"
+    },
+    {
+      "name": "Final Year Project",
+      "grade": "B-"
+    }
+  ],
+  "grade_value": 2.8
+}

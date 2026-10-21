@@ -1,0 +1,208 @@
+[
+  {
+    "id": "e01-clear-eligible",
+    "program_id": 3686,
+    "courses": null,
+    "profile": {
+      "degree_field": "Bachelor's in Computer Science",
+      "grade_value": 3.6,
+      "grade_scale": "4.0 GPA",
+      "nationality": "Pakistan",
+      "other_notes": "IELTS Academic 7.5 (C1)"
+    },
+    "expected_verdict": "eligible",
+    "acceptable_verdicts": [
+      "eligible",
+      "likely_eligible"
+    ],
+    "label_rationale": "CS degree matches; 3.6/4.0 converts to German 1.4, better than the 2.5 threshold; IELTS 7.5 exceeds B2. Nationality is irrelevant to the criteria."
+  },
+  {
+    "id": "e02-grade-too-low",
+    "program_id": 3686,
+    "courses": null,
+    "profile": {
+      "degree_field": "Bachelor's in Computer Science",
+      "grade_value": 2.2,
+      "grade_scale": "4.0 GPA",
+      "nationality": "India",
+      "other_notes": "IELTS Academic 7.5 (C1)"
+    },
+    "expected_verdict": "not_eligible",
+    "acceptable_verdicts": [
+      "not_eligible"
+    ],
+    "label_rationale": "2.2/4.0 converts to German 2.8, worse than the required 2.5 (lower is better)."
+  },
+  {
+    "id": "e03-cgpa-10-point",
+    "program_id": 3960,
+    "courses": null,
+    "profile": {
+      "degree_field": "Bachelor's in Software Engineering",
+      "grade_value": 8.1,
+      "grade_scale": "10-point CGPA",
+      "nationality": "India",
+      "other_notes": "IELTS Academic 7.5 (C1)"
+    },
+    "expected_verdict": "eligible",
+    "acceptable_verdicts": [
+      "eligible",
+      "likely_eligible"
+    ],
+    "label_rationale": "8.1/10 CGPA converts to German 2.14 (better than 2.5). Trap: must not be treated as a 4.0-scale GPA. Degree is closely related to CS."
+  },
+  {
+    "id": "e04-german-grade-good",
+    "program_id": 3960,
+    "courses": null,
+    "profile": {
+      "degree_field": "Bachelor's in Computer Science",
+      "grade_value": 1.7,
+      "grade_scale": "German grading scale (1.0 best, 4.0 pass)",
+      "nationality": "Germany",
+      "other_notes": "IELTS Academic 7.5 (C1)"
+    },
+    "expected_verdict": "eligible",
+    "acceptable_verdicts": [
+      "eligible",
+      "likely_eligible"
+    ],
+    "label_rationale": "German 1.7 is better than the 2.5 threshold because lower is better. Trap: a model comparing numbers naively would think 1.7 < 2.5 is worse."
+  },
+  {
+    "id": "e05-german-grade-too-low",
+    "program_id": 3636,
+    "courses": null,
+    "profile": {
+      "degree_field": "Bachelor's in Economics",
+      "grade_value": 2.9,
+      "grade_scale": "German grading scale (1.0 best, 4.0 pass)",
+      "nationality": "Austria",
+      "other_notes": "IELTS Academic 7.5 (C1)"
+    },
+    "expected_verdict": "not_eligible",
+    "acceptable_verdicts": [
+      "not_eligible"
+    ],
+    "label_rationale": "Economics degree is accepted, but German 2.9 is worse than the required 2.5."
+  },
+  {
+    "id": "e06-unrelated-degree",
+    "program_id": 3624,
+    "courses": null,
+    "profile": {
+      "degree_field": "Bachelor of Fine Arts",
+      "grade_value": 3.8,
+      "grade_scale": "4.0 GPA",
+      "nationality": "Brazil",
+      "other_notes": "IELTS Academic 7.5 (C1)"
+    },
+    "expected_verdict": "not_eligible",
+    "acceptable_verdicts": [
+      "not_eligible"
+    ],
+    "label_rationale": "Program requires a Bachelor's in computer science or a related field; Fine Arts is unrelated despite an excellent grade."
+  },
+  {
+    "id": "e07-missing-grade",
+    "program_id": 3686,
+    "courses": null,
+    "profile": {
+      "degree_field": "Bachelor's in Computer Science",
+      "grade_value": null,
+      "grade_scale": null,
+      "nationality": "Nigeria",
+      "other_notes": "IELTS Academic 7.5 (C1)"
+    },
+    "expected_verdict": "unclear",
+    "acceptable_verdicts": [
+      "unclear",
+      "likely_eligible"
+    ],
+    "label_rationale": "Degree matches but no grade is given, so the 2.5 threshold can't be checked."
+  },
+  {
+    "id": "e08-coursework-related-field",
+    "program_id": 3624,
+    "courses": [
+      {
+        "name": "Data Structures",
+        "grade": "A"
+      },
+      {
+        "name": "Design and Analysis of Algorithms",
+        "grade": "A-"
+      },
+      {
+        "name": "Operating Systems",
+        "grade": "B+"
+      },
+      {
+        "name": "Database Systems",
+        "grade": "A"
+      },
+      {
+        "name": "Linear Algebra",
+        "grade": "A"
+      },
+      {
+        "name": "Computer Architecture",
+        "grade": "B+"
+      },
+      {
+        "name": "Object Oriented Programming",
+        "grade": "A"
+      }
+    ],
+    "profile": {
+      "degree_field": "Bachelor's in Electrical Engineering",
+      "grade_value": 82.0,
+      "grade_scale": "percentage",
+      "nationality": "Egypt",
+      "other_notes": "IELTS Academic 7.5 (C1)"
+    },
+    "expected_verdict": "eligible",
+    "acceptable_verdicts": [
+      "eligible",
+      "likely_eligible"
+    ],
+    "label_rationale": "EE is plausibly 'related', and the completed coursework is heavily CS; 82% meets the 75% threshold."
+  },
+  {
+    "id": "e09-cs-into-agriculture",
+    "program_id": 7600,
+    "courses": null,
+    "profile": {
+      "degree_field": "Bachelor's in Computer Science",
+      "grade_value": 3.7,
+      "grade_scale": "4.0 GPA",
+      "nationality": "Pakistan",
+      "other_notes": "IELTS Academic 7.5 (C1)"
+    },
+    "expected_verdict": "not_eligible",
+    "acceptable_verdicts": [
+      "not_eligible",
+      "unclear"
+    ],
+    "label_rationale": "Agricultural sciences programme; a CS degree is not in the required field. 'unclear' tolerated if the snapshot's degree wording is vague."
+  },
+  {
+    "id": "e10-vague-excellent-threshold",
+    "program_id": 3736,
+    "courses": null,
+    "profile": {
+      "degree_field": "Bachelor's in Computer Science",
+      "grade_value": 3.0,
+      "grade_scale": "4.0 GPA",
+      "nationality": "Vietnam",
+      "other_notes": "IELTS Academic 7.5 (C1)"
+    },
+    "expected_verdict": "unclear",
+    "acceptable_verdicts": [
+      "unclear",
+      "likely_eligible"
+    ],
+    "label_rationale": "Program asks for an 'excellent' GPA with no number; 3.0/4.0 (German 2.0) is good but not clearly excellent."
+  }
+]
