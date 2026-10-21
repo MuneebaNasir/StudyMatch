@@ -89,6 +89,8 @@ def test_failed_provider_call_is_recorded_and_reraised():
         spy.start_case()
         assert chain.invoke("hi").content == "mis"
 
-    assert [(r.provider, r.ok) for r in spy.case_records] == [("groq", False), ("mistral", True)]
+    assert [(r.provider, r.ok, r.error) for r in spy.case_records] == [
+        ("groq", False, "RuntimeError"), ("mistral", True, None),
+    ]
     with pytest.raises(RuntimeError), LlmSpy(PROVIDERS):
         FakeGroq(fail=True).invoke("hi")

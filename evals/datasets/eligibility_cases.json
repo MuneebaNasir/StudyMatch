@@ -8,14 +8,14 @@
       "grade_value": 3.6,
       "grade_scale": "4.0 GPA",
       "nationality": "Pakistan",
-      "other_notes": "IELTS Academic 7.5 (C1)"
+      "other_notes": "IELTS Academic 7.5 (C1); Goethe-Zertifikat A1 (German)"
     },
     "expected_verdict": "eligible",
     "acceptable_verdicts": [
       "eligible",
       "likely_eligible"
     ],
-    "label_rationale": "CS degree matches; 3.6/4.0 converts to German 1.4, better than the 2.5 threshold; IELTS 7.5 exceeds B2. Nationality is irrelevant to the criteria."
+    "label_rationale": "CS degree matches; 3.6/4.0 converts to German 1.4, better than the 2.5 threshold; IELTS 7.5 exceeds B2. Nationality is irrelevant to the criteria. Profile includes the German A1 certificate this programme also requires."
   },
   {
     "id": "e02-grade-too-low",
@@ -26,13 +26,13 @@
       "grade_value": 2.2,
       "grade_scale": "4.0 GPA",
       "nationality": "India",
-      "other_notes": "IELTS Academic 7.5 (C1)"
+      "other_notes": "IELTS Academic 7.5 (C1); Goethe-Zertifikat A1 (German)"
     },
     "expected_verdict": "not_eligible",
     "acceptable_verdicts": [
       "not_eligible"
     ],
-    "label_rationale": "2.2/4.0 converts to German 2.8, worse than the required 2.5 (lower is better)."
+    "label_rationale": "2.2/4.0 converts to German 2.8, worse than the required 2.5 (lower is better). Profile includes the German A1 certificate this programme also requires."
   },
   {
     "id": "e03-cgpa-10-point",
@@ -113,14 +113,14 @@
       "grade_value": null,
       "grade_scale": null,
       "nationality": "Nigeria",
-      "other_notes": "IELTS Academic 7.5 (C1)"
+      "other_notes": "IELTS Academic 7.5 (C1); Goethe-Zertifikat A1 (German)"
     },
     "expected_verdict": "unclear",
     "acceptable_verdicts": [
       "unclear",
       "likely_eligible"
     ],
-    "label_rationale": "Degree matches but no grade is given, so the 2.5 threshold can't be checked."
+    "label_rationale": "Degree matches but no grade is given, so the 2.5 threshold can't be checked. Profile includes the German A1 certificate this programme also requires."
   },
   {
     "id": "e08-coursework-related-field",

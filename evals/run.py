@@ -77,6 +77,7 @@ class _RunStats:
         self.tokens = 0
         self.failures = 0
         self.answered_by: Counter = Counter()
+        self.errors: Counter = Counter()
 
     def record_call(self, spy: LlmSpy, latency_s: float, failed: bool) -> dict:
         records = spy.case_records
@@ -85,8 +86,11 @@ class _RunStats:
         self.tokens += tokens
         self.failures += int(failed)
         self.answered_by[spy.answered_by() or "none"] += 1
+        errors = [f"{r.provider}:{r.error}" for r in records if r.error and not r.blocked]
+        self.errors.update(e.replace(":", "_") for e in errors)
         return {
             "answered_by": spy.answered_by(), "latency_s": round(latency_s, 3), "tokens": tokens,
+            "provider_errors": errors,
             "gemini_blocked": any(r.provider == "gemini" and r.blocked for r in records),
         }
 
@@ -102,6 +106,7 @@ class _RunStats:
             "latency_p50_s": statistics.median(self.latencies) if self.latencies else 0.0,
         })
         out.update({f"answered_by_{name}": count for name, count in self.answered_by.items()})
+        out.update({f"errors_{name}": count for name, count in self.errors.items()})
         return out
 
 
@@ -236,7 +241,10 @@ def _run_suite(mlflow, suite, provider, cases, spy, snapshots, args) -> dict:
         })
         predict_fn, scorers = SUITE_BUILDERS[suite](cases, spy, stats, snapshots, not args.no_judge)
         data = [{"inputs": {"case_id": c.id}, "expectations": {"case_id": c.id}} for c in cases]
-        mlflow.genai.evaluate(data=data, predict_fn=predict_fn, scorers=scorers)
+        # Traced at the top level so each row in MLflow's UI shows the case id
+        # and who answered, with the LangChain calls nested underneath.
+        traced_predict = mlflow.trace(predict_fn, name=f"{suite}_case")
+        mlflow.genai.evaluate(data=data, predict_fn=traced_predict, scorers=scorers)
         metrics = stats.metrics() | {
             "gemini_calls": spy.gemini_calls - gemini_before,
             "gemini_guard_blocks": spy.gemini_guard_blocks - blocks_before,

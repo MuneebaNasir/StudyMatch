@@ -11,6 +11,7 @@ from pydantic import BaseModel
 
 from daad_search.config import settings
 from daad_search.query_understanding.llm import GROQ_MODEL
+from daad_search.query_understanding.reasoner import convert_to_german_scale
 from daad_search.query_understanding.schema import EligibilityVerdict
 
 from .datasets import ProgramSnapshot
@@ -19,7 +20,7 @@ JUDGE_PROMPT = """You are reviewing an automated admissions-eligibility verdict.
 
 Student profile:
 {profile}
-
+{conversion}
 Program requirements ({course_name}):
 {requirements}
 
@@ -40,16 +41,30 @@ class JudgeResult(BaseModel):
     explanation: str
 
 
-def judge_reasoning(profile: dict, program: ProgramSnapshot, verdict: EligibilityVerdict) -> JudgeResult | None:
-    prompt = JUDGE_PROMPT.format(
+def build_judge_prompt(profile: dict, program: ProgramSnapshot, verdict: EligibilityVerdict) -> str:
+    # Same deterministic conversion the app gives the reasoner, so the judge
+    # doesn't flag a correct conversion as a factual error.
+    converted = None
+    if profile.get("grade_value") is not None:
+        converted = convert_to_german_scale(profile["grade_value"], profile.get("grade_scale"))
+    conversion = (
+        f"Reference (computed in code, DAAD modified Bavarian formula): German-scale equivalent: {converted}\n"
+        if converted is not None else ""
+    )
+    return JUDGE_PROMPT.format(
         profile=json.dumps(profile, indent=2),
+        conversion=conversion,
         course_name=program.course_name,
         requirements=json.dumps(program.structured_eligibility, indent=2),
         verdict=verdict.verdict,
         reasoning=verdict.reasoning,
     )
+
+
+def judge_reasoning(profile: dict, program: ProgramSnapshot, verdict: EligibilityVerdict) -> JudgeResult | None:
+    prompt = build_judge_prompt(profile, program, verdict)
     try:
         judge = ChatGroq(model=GROQ_MODEL, api_key=settings.groq_api_key, temperature=0, max_retries=1)
-        return judge.with_structured_output(JudgeResult).invoke(prompt)
+        return judge.with_structured_output(JudgeResult, method="json_schema").invoke(prompt)
     except Exception:
         return None

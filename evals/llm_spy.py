@@ -30,6 +30,7 @@ class CallRecord:
     input_tokens: int | None
     output_tokens: int | None
     blocked: bool
+    error: str | None = None
 
 
 def default_provider_classes() -> dict[str, type]:
@@ -70,15 +71,17 @@ class LlmSpy:
 
         def _generate(model_self, *args, **kwargs):
             if spy._blocked(provider):
-                spy.case_records.append(CallRecord(provider, False, 0.0, None, None, blocked=True))
+                spy.case_records.append(CallRecord(provider, False, 0.0, None, None, blocked=True, error="blocked"))
                 raise ProviderBlockedError(provider)
             if provider == "gemini":
                 spy.gemini_calls += 1
             start = time.perf_counter()
             try:
                 result = original(model_self, *args, **kwargs)
-            except Exception:
-                spy.case_records.append(CallRecord(provider, False, time.perf_counter() - start, None, None, False))
+            except Exception as exc:
+                spy.case_records.append(CallRecord(
+                    provider, False, time.perf_counter() - start, None, None, False, error=type(exc).__name__,
+                ))
                 raise
             usage = getattr(result.generations[0].message, "usage_metadata", None) or {}
             spy.case_records.append(CallRecord(
