@@ -14,7 +14,7 @@ class TranscriptExtraction(BaseModel):
     grade_scale: str | None = None
     nationality: str | None = None
     degree_field: str | None = None
-    extraction_confidence: Literal["high", "medium", "low"]
+    extraction_confidence: Literal["high", "medium", "low"] = "medium"
 
 
 class TranscriptUploadResponse(BaseModel):
