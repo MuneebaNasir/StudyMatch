@@ -45,13 +45,17 @@ export interface ExtractedCourse {
   grade: string | null;
 }
 
-export interface TranscriptUploadResponse {
-  session_token: string;
+// What the browser sends back with each /query. The server never stores a
+// transcript extraction, so this lives only in the page's memory.
+export interface TranscriptContext {
   courses: ExtractedCourse[];
   grade_value: number | null;
   grade_scale: string | null;
   nationality: string | null;
   degree_field: string | null;
+}
+
+export interface TranscriptUploadResponse extends TranscriptContext {
   extraction_confidence: "high" | "medium" | "low";
 }
 

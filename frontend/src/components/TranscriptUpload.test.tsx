@@ -20,7 +20,7 @@ describe("TranscriptUpload", () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/transcript`, () =>
         HttpResponse.json({
-          session_token: "abc123", courses: [{ name: "Linear Algebra", grade: "A" }],
+          courses: [{ name: "Linear Algebra", grade: "A" }],
           grade_value: 3.8, grade_scale: "4.0 GPA", nationality: "Pakistan",
           degree_field: "Computer Science", extraction_confidence: "high",
         }),
@@ -34,7 +34,7 @@ describe("TranscriptUpload", () => {
     await userEvent.upload(input, file);
 
     await waitFor(() =>
-      expect(onUploaded).toHaveBeenCalledWith(expect.objectContaining({ session_token: "abc123" })),
+      expect(onUploaded).toHaveBeenCalledWith(expect.objectContaining({ extraction_confidence: "high" })),
     );
   });
 
@@ -53,7 +53,7 @@ describe("TranscriptUpload", () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/transcript`, () =>
         HttpResponse.json({
-          session_token: "abc123", courses: [],
+          courses: [],
           grade_value: null, grade_scale: null, nationality: null,
           degree_field: null, extraction_confidence: "low",
         }),
@@ -69,7 +69,7 @@ describe("TranscriptUpload", () => {
     // The session token must still be stored -- a low-confidence, zero-course
     // upload is still valid state -- but it must not be celebrated as loaded.
     await waitFor(() =>
-      expect(onUploaded).toHaveBeenCalledWith(expect.objectContaining({ session_token: "abc123" })),
+      expect(onUploaded).toHaveBeenCalledWith(expect.objectContaining({ extraction_confidence: "low" })),
     );
     expect(screen.getByText(/couldn't read this file clearly/i)).toBeInTheDocument();
     expect(screen.queryByText(/transcript loaded/i)).not.toBeInTheDocument();

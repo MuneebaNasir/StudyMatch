@@ -5,13 +5,17 @@ import { mswServer } from "../test/mswServer";
 import { getProgram, postQuery, postSearch, postTranscript } from "./client";
 
 const API_BASE_URL = "http://localhost:8000";
+const TRANSCRIPT = {
+  courses: [{ name: "Linear Algebra", grade: "A" }],
+  grade_value: 3.8, grade_scale: "4.0 GPA", nationality: "Pakistan", degree_field: "Computer Science",
+};
 
 describe("api client", () => {
   it("postQuery sends the query, offset, and limit, and returns the parsed response", async () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/query`, async ({ request }) => {
         const body = await request.json();
-        expect(body).toEqual({ query: "robotics masters", offset: 0, limit: 20, session_token: null });
+        expect(body).toEqual({ query: "robotics masters", offset: 0, limit: 20, transcript: null });
         return HttpResponse.json({
           results: [], total_matched: 0, extracted_filters: null, extracted_profile: null, semantic_query: null,
         });
@@ -26,7 +30,7 @@ describe("api client", () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/query`, async ({ request }) => {
         const body = await request.json();
-        expect(body).toEqual({ query: "robotics masters", offset: 20, limit: 20, session_token: null });
+        expect(body).toEqual({ query: "robotics masters", offset: 20, limit: 20, transcript: null });
         return HttpResponse.json({
           results: [], total_matched: 0, extracted_filters: null, extracted_profile: null, semantic_query: null,
         });
@@ -90,11 +94,11 @@ describe("api client", () => {
     await expect(getProgram(999)).rejects.toThrow("GET /programs/999 failed with 404");
   });
 
-  it("postQuery sends the session_token when provided", async () => {
+  it("postQuery sends the transcript when provided", async () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/query`, async ({ request }) => {
         const body = await request.json();
-        expect(body).toEqual({ query: "robotics masters", offset: 0, limit: 20, session_token: "abc123" });
+        expect(body).toEqual({ query: "robotics masters", offset: 0, limit: 20, transcript: TRANSCRIPT });
         return HttpResponse.json({
           results: [], total_matched: 0, extracted_filters: null, extracted_profile: null,
           extracted_courses: null, semantic_query: null,
@@ -102,14 +106,14 @@ describe("api client", () => {
       }),
     );
 
-    await postQuery("robotics masters", 0, 20, "abc123");
+    await postQuery("robotics masters", 0, 20, TRANSCRIPT);
   });
 
   it("postTranscript uploads a file and returns the parsed response", async () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/transcript`, () =>
         HttpResponse.json({
-          session_token: "abc123", courses: [{ name: "Linear Algebra", grade: "A" }],
+          courses: [{ name: "Linear Algebra", grade: "A" }],
           grade_value: 3.8, grade_scale: "4.0 GPA", nationality: "Pakistan",
           degree_field: "Computer Science", extraction_confidence: "high",
         }),
@@ -119,7 +123,7 @@ describe("api client", () => {
     const file = new File([new Blob(["fake pdf bytes"])], "transcript.pdf", { type: "application/pdf" });
     const result = await postTranscript(file);
 
-    expect(result.session_token).toBe("abc123");
+    expect(result.extraction_confidence).toBe("high");
     expect(result.courses[0].name).toBe("Linear Algebra");
   });
 });

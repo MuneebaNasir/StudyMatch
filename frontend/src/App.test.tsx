@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { HttpResponse, http } from "msw";
-import { beforeEach, describe, expect, it } from "vitest";
+import { describe, expect, it } from "vitest";
 
 import App from "./App";
 import { mswServer } from "./test/mswServer";
@@ -37,23 +37,19 @@ const QUERY_RESPONSE = {
   semantic_query: "robotics",
 };
 
-beforeEach(() => {
-  localStorage.clear();
-});
-
 describe("App", () => {
-  it("uploads a transcript, then sends its session token on the next query", async () => {
+  it("uploads a transcript, then sends it with the next query without persisting it", async () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/transcript`, () =>
         HttpResponse.json({
-          session_token: "abc123", courses: [{ name: "Linear Algebra", grade: "A" }],
+          courses: [{ name: "Linear Algebra", grade: "A" }],
           grade_value: 3.8, grade_scale: "4.0 GPA", nationality: "Pakistan",
           degree_field: "Computer Science", extraction_confidence: "high",
         }),
       ),
       http.post(`${API_BASE_URL}/query`, async ({ request }) => {
-        const body = (await request.json()) as { session_token: string | null };
-        expect(body.session_token).toBe("abc123");
+        const body = (await request.json()) as { transcript: { courses: { name: string }[] } | null };
+        expect(body.transcript?.courses[0].name).toBe("Linear Algebra");
         return HttpResponse.json(QUERY_RESPONSE);
       }),
     );
@@ -67,6 +63,7 @@ describe("App", () => {
     await userEvent.click(screen.getByRole("button", { name: /search programs/i }));
 
     await waitFor(() => expect(screen.getByText("Robotics Engineering MSc")).toBeInTheDocument());
+    expect(localStorage.length).toBe(0);
   });
 
   it("submits a query, renders results, edits a chip to re-search, and opens the admission guide drawer", async () => {

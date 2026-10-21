@@ -50,11 +50,11 @@ describe("useQuerySearch", () => {
     await result.current.mutateAsync({ query: "robotics masters", offset: 20 });
   });
 
-  it("posts the session token when provided", async () => {
+  it("posts the transcript when provided", async () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/query`, async ({ request }) => {
-        const body = (await request.json()) as { session_token: string | null };
-        expect(body.session_token).toBe("abc123");
+        const body = (await request.json()) as { transcript: { courses: { name: string }[] } | null };
+        expect(body.transcript?.courses[0].name).toBe("Linear Algebra");
         return HttpResponse.json({
           results: [], total_matched: 0, extracted_filters: null, extracted_profile: null,
           extracted_courses: null, semantic_query: null,
@@ -63,7 +63,10 @@ describe("useQuerySearch", () => {
     );
     const { result } = renderHook(() => useQuerySearch(), { wrapper });
 
-    await result.current.mutateAsync({ query: "robotics masters", offset: 0, sessionToken: "abc123" });
+    await result.current.mutateAsync({
+      query: "robotics masters", offset: 0,
+      transcript: { courses: [{ name: "Linear Algebra", grade: "A" }], grade_value: null, grade_scale: null, nationality: null, degree_field: null },
+    });
   });
 });
 
@@ -72,7 +75,7 @@ describe("useTranscriptUpload", () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/transcript`, () =>
         HttpResponse.json({
-          session_token: "abc123", courses: [{ name: "Linear Algebra", grade: "A" }],
+          courses: [{ name: "Linear Algebra", grade: "A" }],
           grade_value: 3.8, grade_scale: "4.0 GPA", nationality: "Pakistan",
           degree_field: "Computer Science", extraction_confidence: "high",
         }),
@@ -83,7 +86,7 @@ describe("useTranscriptUpload", () => {
     const file = new File([new Blob(["fake"])], "transcript.pdf", { type: "application/pdf" });
     const response = await result.current.mutateAsync(file);
 
-    expect(response.session_token).toBe("abc123");
+    expect(response.courses[0].name).toBe("Linear Algebra");
   });
 });
 

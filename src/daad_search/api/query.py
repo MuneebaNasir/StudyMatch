@@ -4,7 +4,6 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..db.models import Eligibility
-from ..db.transcript_store import get_valid_transcript_profile
 from ..query_understanding.parser import parse_query
 from ..query_understanding.reasoner import convert_to_german_scale, reason_about_eligibility
 from ..query_understanding.schema import (
@@ -13,7 +12,7 @@ from ..query_understanding.schema import (
     QueryResponse,
     QueryResult,
 )
-from ..transcript.schema import ExtractedCourse
+from ..transcript.schema import ExtractedCourse, TranscriptContext
 from . import search as search_module
 from .schemas import SearchFilters
 
@@ -23,7 +22,7 @@ REASONING_CANDIDATE_CAP = 1
 
 
 async def handle_query(
-    session: AsyncSession, query: str, limit: int, offset: int = 0, session_token: str | None = None,
+    session: AsyncSession, query: str, limit: int, offset: int = 0, transcript: TranscriptContext | None = None,
 ) -> QueryResponse:
     parsed = parse_query(query)
 
@@ -39,20 +38,18 @@ async def handle_query(
         profile = None
 
     courses: list[ExtractedCourse] = []
-    if session_token:
-        transcript_row = await get_valid_transcript_profile(session, session_token)
-        if transcript_row is not None:
-            courses = [ExtractedCourse(**c) for c in transcript_row.courses]
-            if profile is not None:
-                # Transcript fills gaps only -- whatever the free-text query
-                # itself explicitly parsed always wins for that field.
-                if profile.grade_value is None and transcript_row.grade_value is not None:
-                    profile.grade_value = transcript_row.grade_value
-                    profile.grade_scale = transcript_row.grade_scale
-                if profile.nationality is None and transcript_row.nationality is not None:
-                    profile.nationality = transcript_row.nationality
-                if profile.degree_field is None and transcript_row.degree_field is not None:
-                    profile.degree_field = transcript_row.degree_field
+    if transcript is not None:
+        courses = [ExtractedCourse(name=c.name, grade=c.grade) for c in transcript.courses]
+        if profile is not None:
+            # Transcript fills gaps only -- whatever the free-text query
+            # itself explicitly parsed always wins for that field.
+            if profile.grade_value is None and transcript.grade_value is not None:
+                profile.grade_value = transcript.grade_value
+                profile.grade_scale = transcript.grade_scale
+            if profile.nationality is None and transcript.nationality is not None:
+                profile.nationality = transcript.nationality
+            if profile.degree_field is None and transcript.degree_field is not None:
+                profile.degree_field = transcript.degree_field
 
     if profile is not None and profile.grade_value is not None:
         profile.grade_value_on_german_scale = convert_to_german_scale(profile.grade_value, profile.grade_scale)

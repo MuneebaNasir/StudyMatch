@@ -17,11 +17,10 @@ export function TranscriptUpload({ onUploaded }: TranscriptUploadProps) {
     upload.mutate(file, { onSuccess: (response) => onUploaded(response) });
   }
 
-  // Extraction can run successfully (HTTP 200, session token stored) while
-  // finding nothing usable in the file -- that's a different situation from
-  // a genuine success and must not be presented as "loaded". The session
-  // token is still stored either way via onUploaded above; only the message
-  // shown to the user differs.
+  // Extraction can run successfully (HTTP 200) while finding nothing usable
+  // in the file -- that's a different situation from a genuine success and
+  // must not be presented as "loaded". onUploaded above still fires either
+  // way; only the message shown to the user differs.
   const extractionFoundNothing =
     upload.isSuccess && upload.data.extraction_confidence === "low" && upload.data.courses.length === 0;
 

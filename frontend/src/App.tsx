@@ -11,7 +11,9 @@ import { useFilteredSearch } from "./hooks/useFilteredSearch";
 import { useProgramDetail } from "./hooks/useProgramDetail";
 import { useQuerySearch } from "./hooks/useQuerySearch";
 import { buildVerdictMap, mergeVerdicts, type VerdictInfo } from "./lib/mergeVerdicts";
-import type { EligibilityVerdictValue, QueryResponse, SearchFilters, SearchResult, TranscriptUploadResponse } from "./types";
+import type {
+  EligibilityVerdictValue, QueryResponse, SearchFilters, SearchResult, TranscriptContext, TranscriptUploadResponse,
+} from "./types";
 
 const PAGE_SIZE = 20;
 
@@ -40,13 +42,13 @@ export default function App() {
   const [offset, setOffset] = useState(0);
   const [totalMatched, setTotalMatched] = useState(0);
   const [pageCache, setPageCache] = useState<Map<number, QueryResponse>>(new Map());
-  const [sessionToken, setSessionToken] = useState<string | null>(
-    () => localStorage.getItem("transcriptSessionToken"),
-  );
+  // Held in memory only (never localStorage) and resent with each /query --
+  // neither the browser nor the server persists transcript details.
+  const [transcript, setTranscript] = useState<TranscriptContext | null>(null);
 
   function handleTranscriptUploaded(response: TranscriptUploadResponse) {
-    setSessionToken(response.session_token);
-    localStorage.setItem("transcriptSessionToken", response.session_token);
+    const { extraction_confidence: _confidence, ...context } = response;
+    setTranscript(context);
   }
 
   const querySearch = useQuerySearch();
@@ -78,7 +80,7 @@ export default function App() {
       return;
     }
     querySearch.mutate(
-      { query, offset, sessionToken },
+      { query, offset, transcript },
       {
         onSuccess: (response) => {
           setPageCache((previous) => new Map(previous).set(offset, response));

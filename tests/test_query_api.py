@@ -1,12 +1,12 @@
 import asyncio
 import logging
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 import pytest
 
 from daad_search.api import query as query_module
 from daad_search.api.schemas import SearchFilters
-from daad_search.db.models import Eligibility, TranscriptProfile
+from daad_search.db.models import Eligibility
 from daad_search.query_understanding.schema import EligibilityVerdict, ParsedQuery, StudentProfile
 
 pytestmark = pytest.mark.integration
@@ -20,22 +20,6 @@ def _seed_eligibility(session_factory, program_id: int, structured_eligibility: 
                 structured_eligibility=structured_eligibility,
                 extracted_at=datetime.now(timezone.utc),
             ))
-            await session.commit()
-
-    asyncio.run(_seed())
-
-
-def _seed_transcript_profile(session_factory, token: str, **overrides) -> None:
-    async def _seed() -> None:
-        async with session_factory() as session:
-            now = datetime.now(timezone.utc)
-            defaults = dict(
-                session_token=token, courses=[{"name": "Linear Algebra", "grade": "A"}],
-                grade_value=None, grade_scale=None, nationality=None, degree_field=None,
-                created_at=now, expires_at=now + timedelta(hours=24),
-            )
-            defaults.update(overrides)
-            session.add(TranscriptProfile(**defaults))
             await session.commit()
 
     asyncio.run(_seed())
@@ -320,52 +304,44 @@ def test_query_offset_greater_than_zero_skips_automatic_reasoning(api_client, se
 @pytest.mark.seed_programs([
     {"id": 1, "course_name": "Robotics Engineering MSc", "link": "https://example.com/1"},
 ])
-def test_query_merges_stored_transcript_courses_into_reasoning(api_client, seeded_session_factory, monkeypatch):
+def test_query_merges_client_sent_transcript_into_reasoning(api_client, seeded_session_factory, monkeypatch):
     _seed_eligibility(seeded_session_factory, 1, {"grade_requirement": {"value": 2.5}})
-    _seed_transcript_profile(seeded_session_factory, "test-token")
 
     monkeypatch.setattr(
         query_module, "parse_query",
-        lambda q: ParsedQuery(filters=SearchFilters(), semantic_query=None, student_profile=StudentProfile()),
+        lambda q: ParsedQuery(
+            filters=SearchFilters(), semantic_query=None, student_profile=StudentProfile(nationality="India"),
+        ),
     )
     captured = {}
 
     def _fake_reasoning(profile, candidates, courses=None):
+        captured["profile"] = profile
         captured["courses"] = courses
         return [EligibilityVerdict(program_id=1, verdict="eligible", reasoning="Meets requirements.")]
 
     monkeypatch.setattr(query_module, "reason_about_eligibility", _fake_reasoning)
 
-    response = api_client.post("/query", json={"query": "robotics masters", "session_token": "test-token"})
+    response = api_client.post("/query", json={
+        "query": "robotics masters",
+        "transcript": {
+            "courses": [{"name": "Linear Algebra", "grade": "A"}],
+            "grade_value": 3.8, "grade_scale": "4.0 GPA", "nationality": "Pakistan",
+        },
+    })
 
     assert response.status_code == 200
     assert captured["courses"][0].name == "Linear Algebra"
+    # Transcript fills gaps; the query's own explicit value wins.
+    assert captured["profile"].grade_value == 3.8
+    assert captured["profile"].nationality == "India"
+    assert response.json()["extracted_courses"] == [{"name": "Linear Algebra", "grade": "A"}]
 
 
-@pytest.mark.seed_programs([
-    {"id": 1, "course_name": "Robotics Engineering MSc", "link": "https://example.com/1"},
-])
-def test_query_ignores_an_expired_transcript_session_token(api_client, seeded_session_factory, monkeypatch):
-    _seed_eligibility(seeded_session_factory, 1, {"grade_requirement": {"value": 2.5}})
-    now = datetime.now(timezone.utc)
-    _seed_transcript_profile(
-        seeded_session_factory, "expired-token",
-        created_at=now - timedelta(hours=48), expires_at=now - timedelta(hours=24),
-    )
+def test_query_rejects_an_oversized_transcript(api_client):
+    response = api_client.post("/query", json={
+        "query": "robotics masters",
+        "transcript": {"courses": [{"name": "x"}] * 201},
+    })
 
-    monkeypatch.setattr(
-        query_module, "parse_query",
-        lambda q: ParsedQuery(filters=SearchFilters(), semantic_query=None, student_profile=StudentProfile()),
-    )
-    captured = {}
-
-    def _fake_reasoning(profile, candidates, courses=None):
-        captured["courses"] = courses
-        return [EligibilityVerdict(program_id=1, verdict="eligible", reasoning="Meets requirements.")]
-
-    monkeypatch.setattr(query_module, "reason_about_eligibility", _fake_reasoning)
-
-    response = api_client.post("/query", json={"query": "robotics masters", "session_token": "expired-token"})
-
-    assert response.status_code == 200
-    assert captured["courses"] == []
+    assert response.status_code == 422

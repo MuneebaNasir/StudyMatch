@@ -102,7 +102,8 @@ flowchart LR
 - **Deterministic math kept out of the LLM's hands.** Grade-scale conversion (e.g. a US 4.0 GPA to the German 1.0–5.0 scale) is a fixed formula in code, not a model guess, after observing a weaker fallback-tier model get a grade comparison backwards.
 - **Cost-aware by measurement.** Real token costs were measured on live traffic (~1,119 tokens to parse a query, ~4,932 for a batch eligibility call) and used to cap automatic reasoning to the top result only, cutting default per-query cost by ~90%.
 - **Graceful degradation everywhere.** A failed LLM call falls back to semantic search over raw text. A failed embedding call falls back to filtered search. Same philosophy at every LLM/vector boundary.
-- **Structured production logging.** Every query logs the raw input, which provider responded, and the exact structured inputs fed to eligibility reasoning, so real behavior is inspectable after the fact.
+- **Structured production logging.** Every query logs which provider responded, the extracted search filters, and each eligibility verdict, so real behavior is inspectable after the fact.
+- **No personal data at rest.** Uploaded transcripts are processed in memory and never written to disk or the database; the extracted courses and grades go back to the browser, which holds them in memory and resends them with each query. Logs deliberately omit the raw query text and the student profile.
 
 ## File structure
 

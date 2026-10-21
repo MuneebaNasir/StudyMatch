@@ -3,7 +3,7 @@ from typing import Literal
 from pydantic import BaseModel, Field
 
 from ..api.schemas import SearchFilters, SearchResult
-from ..transcript.schema import ExtractedCourse
+from ..transcript.schema import ExtractedCourse, TranscriptContext
 
 
 class StudentProfile(BaseModel):
@@ -41,7 +41,7 @@ class QueryRequest(BaseModel):
     query: str
     limit: int = Field(20, ge=1, le=100)
     offset: int = Field(0, ge=0)
-    session_token: str | None = None
+    transcript: TranscriptContext | None = None
 
 
 class QueryResult(SearchResult):

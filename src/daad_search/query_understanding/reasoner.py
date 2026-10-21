@@ -161,22 +161,22 @@ def reason_about_eligibility(
         result: BatchEligibilityReasoning = get_fallback_llm(BatchEligibilityReasoning).invoke(
             prompt, config={"callbacks": [capture]}
         )
-    except Exception:
-        logger.exception("Failed to reason about eligibility for %d candidates", len(candidates))
+    except Exception as exc:
+        # Only the exception type is logged: LLM output-parsing errors echo the
+        # model's output, which can contain the student's personal details.
+        logger.error(
+            "Failed to reason about eligibility for %d candidates: %s", len(candidates), type(exc).__name__,
+        )
         return None
     if result is None:
         logger.warning("Eligibility reasoning returned no structured output for %d candidates", len(candidates))
         return None
 
-    candidates_by_id = {c.program_id: c for c in candidates}
+    # The student profile is deliberately not logged -- it holds personal
+    # details (grades, nationality, background).
     for v in result.verdicts:
-        candidate = candidates_by_id.get(v.program_id)
         logger.info(
-            "ELIGIBILITY  program_id=%s model=%s verdict=%s\n"
-            "             profile_input=%s\n"
-            "             program_input=%s",
+            "ELIGIBILITY  program_id=%s model=%s verdict=%s",
             v.program_id, capture.model_name, v.verdict,
-            profile.model_dump(),
-            candidate.structured_eligibility if candidate else None,
         )
     return result.verdicts

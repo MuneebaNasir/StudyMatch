@@ -13,7 +13,6 @@ from starlette.concurrency import run_in_threadpool
 from ..config import settings
 from ..db.models import Eligibility, Program
 from ..db.session import async_session_factory
-from ..db.transcript_store import insert_transcript_profile
 from ..query_understanding.reasoner import reason_about_eligibility
 from ..query_understanding.schema import CandidateForReasoning, QueryRequest, QueryResponse, StudentProfile
 from ..transcript.extractor import extract_transcript
@@ -56,7 +55,7 @@ async def search(
 async def query(
     request: QueryRequest, session: AsyncSession = Depends(get_session)
 ) -> QueryResponse:
-    return await handle_query(session, request.query, request.limit, request.offset, request.session_token)
+    return await handle_query(session, request.query, request.limit, request.offset, request.transcript)
 
 
 ALLOWED_TRANSCRIPT_CONTENT_TYPES = {"application/pdf", "image/png", "image/jpeg"}
@@ -82,9 +81,7 @@ TRANSCRIPT_MAGIC_BYTES = {
 
 
 @app.post("/transcript", response_model=TranscriptUploadResponse)
-async def upload_transcript(
-    request: Request, file: UploadFile = File(...), session: AsyncSession = Depends(get_session)
-) -> TranscriptUploadResponse:
+async def upload_transcript(request: Request, file: UploadFile = File(...)) -> TranscriptUploadResponse:
     if file.content_type not in ALLOWED_TRANSCRIPT_CONTENT_TYPES:
         raise HTTPException(status_code=415, detail="Unsupported file type; upload a PDF, PNG, or JPEG.")
 
@@ -104,11 +101,11 @@ async def upload_transcript(
     if not file_bytes.startswith(magic):
         raise HTTPException(status_code=415, detail="File content does not match its declared type.")
 
+    # The extraction is returned to the browser and never persisted -- the
+    # client sends it back with each /query instead.
     extraction = await run_in_threadpool(extract_transcript, file_bytes, file.content_type)
-    token = await insert_transcript_profile(session, extraction)
 
     return TranscriptUploadResponse(
-        session_token=token,
         courses=extraction.courses,
         grade_value=extraction.grade_value,
         grade_scale=extraction.grade_scale,

@@ -29,8 +29,10 @@ def extract_transcript(file_bytes: bytes, content_type: str) -> TranscriptExtrac
         result = get_vision_fallback_llm(TranscriptExtraction).invoke([message])
         if result is not None:
             return result
-    except Exception:
-        logger.exception("Vision fallback chain failed for transcript extraction")
+    except Exception as exc:
+        # Only the exception type is logged: LLM output-parsing errors echo the
+        # model's output, i.e. the transcript's contents.
+        logger.error("Vision fallback chain failed for transcript extraction: %s", type(exc).__name__)
 
     if not settings.enable_local_vlm_fallback:
         logger.warning("Local VLM fallback is disabled (enable_local_vlm_fallback=False); returning low-confidence result")
@@ -38,6 +40,6 @@ def extract_transcript(file_bytes: bytes, content_type: str) -> TranscriptExtrac
 
     try:
         return extract_with_local_vlm(page_images)
-    except Exception:
-        logger.exception("Local VLM extraction failed")
+    except Exception as exc:
+        logger.error("Local VLM extraction failed: %s", type(exc).__name__)
         return TranscriptExtraction(extraction_confidence="low")

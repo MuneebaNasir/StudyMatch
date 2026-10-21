@@ -39,18 +39,19 @@ def parse_query(query: str) -> ParsedQuery | None:
     capture = ModelNameCapture()
     try:
         parsed = get_fallback_llm(ParsedQuery).invoke(prompt, config={"callbacks": [capture]})
-    except Exception:
-        logger.exception("Failed to parse query across all LLM providers: %r", query)
+    except Exception as exc:
+        # Only the exception type is logged: LLM output-parsing errors echo the
+        # model's output, which can contain the student's personal details.
+        logger.error("Failed to parse query across all LLM providers: %s", type(exc).__name__)
         return None
     if parsed is None:
-        logger.warning("Query parsing returned no structured output: %r", query)
+        logger.warning("Query parsing returned no structured output")
         return None
+    # Deliberately omits the raw query and the parsed student profile: both
+    # can carry personal details (grades, nationality, background), and
+    # production logs are retained by the hosting provider.
     logger.info(
-        "QUERY    raw_query=%r model=%s\n"
-        "         filters=%s semantic_query=%r\n"
-        "         profile=%s",
-        query, capture.model_name,
-        parsed.filters.model_dump(), parsed.semantic_query,
-        parsed.student_profile.model_dump() if parsed.student_profile else None,
+        "QUERY    model=%s filters=%s has_profile=%s",
+        capture.model_name, parsed.filters.model_dump(), parsed.student_profile is not None,
     )
     return parsed

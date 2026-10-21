@@ -42,7 +42,7 @@ def test_parse_query_returns_none_when_structured_output_is_none(monkeypatch):
     assert parse_query("anything") is None
 
 
-def test_parse_query_logs_the_raw_query_filters_and_profile(monkeypatch, caplog):
+def test_parse_query_logs_without_raw_query_or_profile(monkeypatch, caplog):
     from daad_search.query_understanding import parser as parser_module
 
     class FakeChain:
@@ -58,8 +58,9 @@ def test_parse_query_logs_the_raw_query_filters_and_profile(monkeypatch, caplog)
         parse_query("robotics masters in Berlin")
 
     messages = [record.getMessage() for record in caplog.records]
-    assert any("QUERY" in m for m in messages)
-    assert any("robotics masters in Berlin" in m for m in messages)
+    assert any("QUERY" in m and "Berlin" in m for m in messages)
+    assert not any("robotics masters in Berlin" in m for m in messages)
+    assert not any("Pakistan" in m for m in messages)
 
 
 @pytest.mark.integration

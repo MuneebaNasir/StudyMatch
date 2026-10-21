@@ -8,7 +8,7 @@ from daad_search.transcript.schema import ExtractedCourse, TranscriptExtraction
 pytestmark = pytest.mark.integration
 
 
-def test_upload_transcript_returns_session_token_and_extraction(api_client, monkeypatch):
+def test_upload_transcript_returns_extraction_without_storing_it(api_client, monkeypatch):
     monkeypatch.setattr(
         main_module, "extract_transcript",
         lambda file_bytes, content_type: TranscriptExtraction(
@@ -24,7 +24,7 @@ def test_upload_transcript_returns_session_token_and_extraction(api_client, monk
 
     assert response.status_code == 200
     body = response.json()
-    assert body["session_token"]
+    assert "session_token" not in body
     assert body["nationality"] == "Pakistan"
     assert body["courses"] == [{"name": "Linear Algebra", "grade": "A"}]
     assert body["extraction_confidence"] == "high"

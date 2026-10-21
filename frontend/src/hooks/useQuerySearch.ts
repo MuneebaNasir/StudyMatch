@@ -1,10 +1,12 @@
 import { useMutation } from "@tanstack/react-query";
 
 import { postQuery } from "../api/client";
+import type { TranscriptContext } from "../types";
 
 export function useQuerySearch() {
   return useMutation({
-    mutationFn: ({ query, offset, sessionToken }: { query: string; offset: number; sessionToken?: string | null }) =>
-      postQuery(query, offset, 20, sessionToken ?? null),
+    mutationFn: (
+      { query, offset, transcript }: { query: string; offset: number; transcript?: TranscriptContext | null },
+    ) => postQuery(query, offset, 20, transcript ?? null),
   });
 }

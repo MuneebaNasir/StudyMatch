@@ -140,10 +140,7 @@ async def hybrid_search(
                 return [], 0
             ranked = await semantic_rank(candidate_ids, semantic_query, limit, offset)
     except Exception:
-        logger.exception(
-            "Semantic ranking failed for query %r; falling back to filtered search",
-            semantic_query,
-        )
+        logger.exception("Semantic ranking failed; falling back to filtered search")
         return await filtered_search(session, filters, limit, offset)
 
     if not ranked:

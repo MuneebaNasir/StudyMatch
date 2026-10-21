@@ -61,14 +61,21 @@ def test_candidate_for_reasoning_constructs():
     assert candidate.structured_eligibility["grade_requirement"]["value"] == 2.5
 
 
-def test_query_request_session_token_defaults_to_none():
+def test_query_request_transcript_defaults_to_none():
     request = QueryRequest(query="robotics masters")
-    assert request.session_token is None
+    assert request.transcript is None
 
 
-def test_query_request_accepts_a_session_token():
-    request = QueryRequest(query="robotics masters", session_token="abc123")
-    assert request.session_token == "abc123"
+def test_query_request_accepts_a_transcript():
+    request = QueryRequest(
+        query="robotics masters", transcript={"courses": [{"name": "Linear Algebra", "grade": "A"}]},
+    )
+    assert request.transcript.courses[0].name == "Linear Algebra"
+
+
+def test_query_request_rejects_overlong_transcript_fields():
+    with pytest.raises(ValidationError):
+        QueryRequest(query="robotics masters", transcript={"courses": [{"name": "x" * 301}]})
 
 
 def test_query_response_carries_extracted_courses():
