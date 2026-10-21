@@ -1,4 +1,10 @@
+import { useState } from "react";
+
 import type { ExtractedCourse, SearchFilters, StudentProfile } from "../types";
+
+// A full transcript is often 40-60 courses; showing every chip by default
+// buries the search filters, so only a preview is shown until expanded.
+const COLLAPSED_COURSE_COUNT = 2;
 
 interface FilterChip {
   key: keyof SearchFilters;
@@ -66,6 +72,8 @@ interface ExtractionSummaryProps {
 }
 
 export function ExtractionSummary({ filters, profile, courses = null, onFiltersChange }: ExtractionSummaryProps) {
+  const [showAllCourses, setShowAllCourses] = useState(false);
+
   if (filters === null && profile === null && courses === null) {
     return (
       <p className="text-sm text-ink/70">
@@ -77,6 +85,8 @@ export function ExtractionSummary({ filters, profile, courses = null, onFiltersC
   const filterChips = filters ? buildFilterChips(filters) : [];
   const profileChips = profile ? buildProfileChips(profile) : [];
   const courseChips = courses ? buildCourseChips(courses) : [];
+  const hiddenCourseCount = courseChips.length - COLLAPSED_COURSE_COUNT;
+  const visibleCourseChips = showAllCourses ? courseChips : courseChips.slice(0, COLLAPSED_COURSE_COUNT);
 
   function removeFilterChip(key: keyof SearchFilters) {
     if (!filters) return;
@@ -109,11 +119,22 @@ export function ExtractionSummary({ filters, profile, courses = null, onFiltersC
           {label}
         </span>
       ))}
-      {courseChips.map((label) => (
+      {visibleCourseChips.map((label) => (
         <span key={label} className="inline-flex items-center rounded-full bg-line/20 px-3 py-1 text-xs text-ink/60">
           {label}
         </span>
       ))}
+      {hiddenCourseCount > 0 && (
+        <button
+          type="button"
+          onClick={() => setShowAllCourses((shown) => !shown)}
+          className="inline-flex items-center rounded-full border border-dashed border-accent/50 px-3 py-1 text-xs font-medium text-accent hover:bg-accent-soft"
+        >
+          {showAllCourses
+            ? "Show fewer"
+            : `+${hiddenCourseCount} more ${hiddenCourseCount === 1 ? "course" : "courses"}`}
+        </button>
+      )}
     </div>
   );
 }

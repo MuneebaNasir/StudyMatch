@@ -97,4 +97,19 @@ describe("ExtractionSummary", () => {
     expect(screen.getByText("Linear Algebra (A)")).toBeInTheDocument();
     expect(screen.getByText("Data Structures")).toBeInTheDocument();
   });
+
+  it("shows only the first two courses until the rest are expanded", async () => {
+    const courses = Array.from({ length: 49 }, (_, i) => ({ name: `Course ${i + 1}`, grade: "A" }));
+    render(<ExtractionSummary filters={null} profile={null} courses={courses} onFiltersChange={vi.fn()} />);
+
+    expect(screen.getByText("Course 1 (A)")).toBeInTheDocument();
+    expect(screen.getByText("Course 2 (A)")).toBeInTheDocument();
+    expect(screen.queryByText("Course 3 (A)")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /\+47 more courses/i }));
+    expect(screen.getByText("Course 49 (A)")).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /show fewer/i }));
+    expect(screen.queryByText("Course 49 (A)")).not.toBeInTheDocument();
+  });
 });
