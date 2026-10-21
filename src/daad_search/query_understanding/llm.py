@@ -10,9 +10,14 @@ from pydantic import BaseModel
 
 from ..config import settings
 
-GROQ_MODEL = "llama-3.3-70b-versatile"
-MISTRAL_MODEL = "mistral-small-latest"
-GEMINI_MODEL = "gemini-2.0-flash"
+# Verified against each provider's live model list on 2026-10-21 -- free-tier
+# model IDs get retired without much notice, so re-check these if a whole
+# tier starts failing with 404/model_not_found.
+GROQ_MODEL = "openai/gpt-oss-120b"
+GEMINI_MODEL = "gemini-3.5-flash"
+# Mistral's stronger models are rate-limited or tier-gated on the free plan;
+# ministral-8b is the one that reliably answers, so it goes last.
+MISTRAL_MODEL = "ministral-8b-latest"
 
 
 class ModelNameCapture(BaseCallbackHandler):
@@ -37,7 +42,7 @@ _chains: dict[type[BaseModel], object] = {}
 
 
 def get_fallback_llm(schema: type[T]):
-    """Groq -> Mistral -> Gemini structured-output fallback chain for `schema`.
+    """Groq -> Gemini -> Mistral structured-output fallback chain for `schema`.
 
     Cached per schema class (constructing 3 clients per call would leak
     connections). All three providers are free-tier; if the primary fails
@@ -49,11 +54,11 @@ def get_fallback_llm(schema: type[T]):
         primary = ChatGroq(
             model=GROQ_MODEL, api_key=settings.groq_api_key, temperature=0, max_retries=2
         ).with_structured_output(schema)
-        secondary = ChatMistralAI(
-            model=MISTRAL_MODEL, api_key=settings.mistral_api_key, temperature=0, max_retries=2
-        ).with_structured_output(schema)
-        tertiary = ChatGoogleGenerativeAI(
+        secondary = ChatGoogleGenerativeAI(
             model=GEMINI_MODEL, api_key=settings.gemini_api_key, temperature=0, max_retries=2
+        ).with_structured_output(schema)
+        tertiary = ChatMistralAI(
+            model=MISTRAL_MODEL, api_key=settings.mistral_api_key, temperature=0, max_retries=2
         ).with_structured_output(schema)
         _chains[schema] = primary.with_fallbacks([secondary, tertiary])
     return _chains[schema]

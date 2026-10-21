@@ -33,8 +33,8 @@ def _patch_providers(monkeypatch, llm_module, primary_fails: bool, secondary_fai
     tertiary, tertiary_calls = _fake_llm("tertiary", should_fail=False)
 
     monkeypatch.setattr(llm_module, "ChatGroq", lambda **kw: _FakeChatModel(primary))
-    monkeypatch.setattr(llm_module, "ChatMistralAI", lambda **kw: _FakeChatModel(secondary))
-    monkeypatch.setattr(llm_module, "ChatGoogleGenerativeAI", lambda **kw: _FakeChatModel(tertiary))
+    monkeypatch.setattr(llm_module, "ChatGoogleGenerativeAI", lambda **kw: _FakeChatModel(secondary))
+    monkeypatch.setattr(llm_module, "ChatMistralAI", lambda **kw: _FakeChatModel(tertiary))
     monkeypatch.setattr(llm_module, "_chains", {})
 
     return primary_calls, secondary_calls, tertiary_calls

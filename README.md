@@ -28,7 +28,7 @@ Most program search tools make you speak their language: pick from dropdowns, gu
 
 ## Tech stack
 
-- **AI/LLM:** LangChain (structured output + `.with_fallbacks()`), Groq (Llama 3.3), Mistral, Google Gemini, `sentence-transformers` (local embeddings, `BAAI/bge-large-en-v1.5`, no API key/rate limit)
+- **AI/LLM:** LangChain (structured output + `.with_fallbacks()`), Groq (GPT-OSS 120B), Google Gemini, Mistral, `sentence-transformers` (local embeddings, `BAAI/bge-large-en-v1.5`, no API key/rate limit)
 - **Backend:** Python, FastAPI, SQLAlchemy (async), Pydantic
 - **Data:** PostgreSQL (Neon), Qdrant (vector search)
 - **Frontend:** React, TypeScript, Vite, TanStack Query, Radix UI, Tailwind CSS
@@ -43,7 +43,7 @@ Every query gets split into three things by a single LLM call: hard filters, a t
 - 🧠 **The topic** gets embedded and matched against **Qdrant** semantically, so "agentic AI and large language models" can match a program that never uses those exact words, by comparing meaning rather than keywords.
 - ✅ **Your eligibility verdict** only ever compares your structured profile against a program's structured requirements, never the raw admissions paragraph. If there's no clean field to point to, it says "unclear" instead of guessing.
 
-On the LLM side, a three-tier fallback chain (Groq's Llama 3.3 → Mistral → Gemini, via LangChain) keeps things running if a provider goes down 🐌. A local embedding model (`BAAI/bge-large`, via `sentence-transformers`) keeps semantic search alive even if all three cloud LLMs are unavailable.
+On the LLM side, a three-tier fallback chain (Groq's GPT-OSS 120B → Gemini → Mistral, via LangChain) keeps things running if a provider goes down 🐌. A local embedding model (`BAAI/bge-large`, via `sentence-transformers`) keeps semantic search alive even if all three cloud LLMs are unavailable.
 
 ```mermaid
 flowchart TD
@@ -90,7 +90,7 @@ flowchart LR
     UI["React + TypeScript<br/>chat-style UI"] --> API["FastAPI<br/>async SQLAlchemy"]
     API --> PG[("Postgres<br/>filters + structured eligibility")]
     API --> QD[("Qdrant<br/>program embeddings")]
-    API --> LLM["LangChain fallback chain<br/>Groq to Mistral to Gemini"]
+    API --> LLM["LangChain fallback chain<br/>Groq to Gemini to Mistral"]
     EXT["Extraction pipeline<br/>offline, once per program"] --> PG
 ```
 
@@ -98,7 +98,7 @@ flowchart LR
 
 - **Structured extraction, not raw-text matching.** Admission requirements are extracted into a typed schema once, ahead of time, so eligibility reasoning is a structured-data comparison, not an LLM re-reading legal text on every query.
 - **Hallucination mitigation as several mechanisms, not one fix.** Structured output constrains what the model can return. An explicit `"unclear"` verdict lets it admit uncertainty instead of guessing. Extraction confidence (high/medium/low) is tracked per program. Anything computable, like grade conversion, is computed in code, never asked of the model.
-- **Three-provider fallback chain.** Groq → Mistral → Gemini via LangChain's `.with_fallbacks()`, so one provider's outage doesn't take the pipeline down. A custom callback handler confirms which provider actually answered each call, for observability.
+- **Three-provider fallback chain.** Groq → Gemini → Mistral via LangChain's `.with_fallbacks()`, so one provider's outage doesn't take the pipeline down. A custom callback handler confirms which provider actually answered each call, for observability.
 - **Deterministic math kept out of the LLM's hands.** Grade-scale conversion (e.g. a US 4.0 GPA to the German 1.0–5.0 scale) is a fixed formula in code, not a model guess, after observing a weaker fallback-tier model get a grade comparison backwards.
 - **Cost-aware by measurement.** Real token costs were measured on live traffic (~1,119 tokens to parse a query, ~4,932 for a batch eligibility call) and used to cap automatic reasoning to the top result only, cutting default per-query cost by ~90%.
 - **Graceful degradation everywhere.** A failed LLM call falls back to semantic search over raw text. A failed embedding call falls back to filtered search. Same philosophy at every LLM/vector boundary.

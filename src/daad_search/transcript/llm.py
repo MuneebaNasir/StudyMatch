@@ -13,10 +13,10 @@ from ..config import settings
 # query_understanding/llm.py (GROQ_MODEL/MISTRAL_MODEL there cannot see
 # images). Verify current availability against each provider's model list
 # before deploying; vision model names/tiers change more often than the
-# text ones.
-GROQ_VISION_MODEL = "llama-3.2-11b-vision-preview"
+# text ones. Last verified with a real image on 2026-10-21.
+GROQ_VISION_MODEL = "qwen/qwen3.8-27b"
 MISTRAL_VISION_MODEL = "pixtral-12b-2409"
-GEMINI_VISION_MODEL = "gemini-2.0-flash"
+GEMINI_VISION_MODEL = "gemini-3.5-flash"
 
 T = TypeVar("T", bound=BaseModel)
 
