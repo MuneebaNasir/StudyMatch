@@ -20,3 +20,31 @@ body {
 .animate-snail-3 {
   animation: snail-loop 1.5s linear infinite;
 }
+
+/* Transcript card: the scroll + snail wiggle when the card is hovered, and
+   the snail bobs while a transcript is being read. */
+@keyframes wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+@keyframes bob {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+.group:hover .animate-wiggle-on-hover {
+  animation: wiggle 0.6s ease-in-out;
+}
+
+.animate-bob {
+  animation: bob 0.9s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .group:hover .animate-wiggle-on-hover,
+  .animate-bob {
+    animation: none;
+  }
+}

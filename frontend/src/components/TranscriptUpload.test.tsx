@@ -16,6 +16,14 @@ function wrapper({ children }: PropsWithChildren) {
 }
 
 describe("TranscriptUpload", () => {
+  it("explains what uploading a transcript is for", () => {
+    render(<TranscriptUpload onUploaded={vi.fn()} />, { wrapper });
+
+    expect(screen.getByText(/add your transcript/i)).toBeInTheDocument();
+    expect(screen.getByText(/coursework against each program's requirements/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /choose file/i })).toBeInTheDocument();
+  });
+
   it("uploads the selected file and calls onUploaded with the parsed response", async () => {
     mswServer.use(
       http.post(`${API_BASE_URL}/transcript`, () =>
@@ -36,6 +44,7 @@ describe("TranscriptUpload", () => {
     await waitFor(() =>
       expect(onUploaded).toHaveBeenCalledWith(expect.objectContaining({ extraction_confidence: "high" })),
     );
+    expect(screen.getByText(/transcript loaded/i)).toHaveTextContent(/1 course found/i);
   });
 
   it("shows an error message when the upload fails", async () => {

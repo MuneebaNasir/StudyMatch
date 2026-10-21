@@ -179,8 +179,8 @@ export default function App() {
     <main className="mx-auto max-w-3xl space-y-6 p-6">
       <div className="relative overflow-hidden rounded-3xl bg-accent-soft p-6 sm:p-8 space-y-4">
         <Header />
-        <TranscriptUpload onUploaded={handleTranscriptUploaded} />
         <ChatQueryBox onSubmit={handleSubmit} isPending={querySearch.isPending} />
+        <TranscriptUpload onUploaded={handleTranscriptUploaded} />
       </div>
 
       {querySearch.isError && (
