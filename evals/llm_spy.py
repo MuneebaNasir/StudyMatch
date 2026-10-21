@@ -44,7 +44,7 @@ class LlmSpy:
     def __init__(self, provider_classes: dict[str, type], gemini_cap: int | None = 5, only_provider: str | None = None):
         self._provider_classes = provider_classes
         self._gemini_cap = gemini_cap
-        self._only_provider = only_provider
+        self.only_provider = only_provider
         self._saved: dict[str, object] = {}
         self.case_records: list[CallRecord] = []
         self.gemini_calls = 0
@@ -58,7 +58,7 @@ class LlmSpy:
         return answered[-1] if answered else None
 
     def _blocked(self, provider: str) -> bool:
-        if self._only_provider is not None and provider != self._only_provider:
+        if self.only_provider is not None and provider != self.only_provider:
             return True
         if provider == "gemini" and self._gemini_cap is not None and self.gemini_calls >= self._gemini_cap:
             self.gemini_guard_blocks += 1
