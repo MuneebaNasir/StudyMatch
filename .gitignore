@@ -14,3 +14,9 @@ docs/
 
 # Personal documents used for manual testing
 assets/*Transcript*
+
+# MLflow local tracking store (eval traces contain full prompts/responses)
+mlflow.db
+mlruns/
+mlartifacts/
+evals/local/
