@@ -2,7 +2,7 @@
 
 🐌 *Your international student counselor for German universities. Write your query and the snail find the right program for you..*
 
-[![CI](https://github.com/MuneebaNasir/study-in-germany/actions/workflows/ci.yml/badge.svg)](https://github.com/MuneebaNasir/study-in-germany/actions/workflows/ci.yml)
+[![CI](https://github.com/MuneebaNasir/StudyMatch/actions/workflows/ci.yml/badge.svg)](https://github.com/MuneebaNasir/StudyMatch/actions/workflows/ci.yml)
 
 **[Try it live →](https://frontend-snowy-ten-66.vercel.app)**
 
@@ -20,6 +20,8 @@ Yes, it's live. You type your query the way you'd actually say it out loud, not 
 
 It searches all ~2,400 real German international study programs listed on DAAD and comes back with a ranked list, each one carrying an actual eligibility verdict. Not a maybe.
 
+📜 **Got a transcript?** Upload it (PDF or a photo/scan) and a vision LLM reads every course and grade off the page, so the eligibility check can judge your actual coursework against each program's prerequisites, not just your degree title. Nothing is saved on the server.
+
 It runs entirely on free-tier infrastructure (Vercel + Google Cloud Run + Neon Postgres + Qdrant Cloud).
 
 ## The problem
@@ -29,6 +31,7 @@ Most program search tools make you speak their language: pick from dropdowns, gu
 ## Tech stack
 
 - **AI/LLM:** LangChain (structured output + `.with_fallbacks()`), Groq (GPT-OSS 120B), Google Gemini, Mistral, `sentence-transformers` (local embeddings, `BAAI/bge-large-en-v1.5`, no API key/rate limit)
+- **Transcript reading:** vision LLMs (Gemini → Ministral → Qwen fallback chain, with a check that rejects empty or ungraded extractions), PyMuPDF for PDF rasterization
 - **Backend:** Python, FastAPI, SQLAlchemy (async), Pydantic
 - **Data:** PostgreSQL (Neon), Qdrant (vector search)
 - **Frontend:** React, TypeScript, Vite, TanStack Query, Radix UI, Tailwind CSS
