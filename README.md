@@ -152,4 +152,4 @@ Run tests: `uv run pytest -m "not integration"` (backend) and `npm test` (fronte
 
 ## License
 
-MIT
+All rights reserved. The code is public so it can be read and evaluated, but it may not be copied, modified, or reused without written permission. See [LICENSE](LICENSE).
