@@ -22,8 +22,10 @@ def _fake_llm(name: str, should_fail: bool):
 class _FakeChatModel:
     def __init__(self, runnable):
         self._runnable = runnable
+        self.structured_output_kwargs: dict | None = None
 
-    def with_structured_output(self, schema):
+    def with_structured_output(self, schema, **kwargs):
+        self.structured_output_kwargs = kwargs
         return self._runnable
 
 
@@ -80,3 +82,17 @@ def test_get_fallback_llm_caches_per_schema(monkeypatch):
     first = llm_module.get_fallback_llm(DummySchema)
     second = llm_module.get_fallback_llm(DummySchema)
     assert first is second
+
+
+def test_groq_uses_json_schema_structured_output(monkeypatch):
+    # gpt-oss-120b often answers in prose instead of calling the tool
+    # (400 tool_use_failed) in the default function-calling mode.
+    from daad_search.query_understanding import llm as llm_module
+
+    _patch_providers(monkeypatch, llm_module, primary_fails=False, secondary_fails=False)
+    groq = _FakeChatModel(_fake_llm("groq", should_fail=False)[0])
+    monkeypatch.setattr(llm_module, "ChatGroq", lambda **kw: groq)
+
+    llm_module.get_fallback_llm(DummySchema)
+
+    assert groq.structured_output_kwargs == {"method": "json_schema"}

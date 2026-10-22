@@ -209,9 +209,12 @@ def test_reason_about_eligibility_produces_sensible_verdicts_for_real_data():
 
     # Clearly strong profile: an excellent grade should convert well under
     # the 2.5 German-scale threshold, and be judged as waiving the GRE too.
+    # English is stated so the B2 requirement isn't left open (with it
+    # missing, Groq reasonably answers "unclear").
     strong_profile = StudentProfile(
         degree_field="Mechanical Engineering", grade_value=3.9,
         grade_scale="4.0 GPA scale (USA)", nationality="Pakistan",
+        other_notes="IELTS 7.5 (English C1)",
     )
     strong_verdicts = reason_about_eligibility(strong_profile, candidates)
     assert strong_verdicts is not None

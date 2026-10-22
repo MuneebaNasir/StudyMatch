@@ -51,9 +51,11 @@ def get_fallback_llm(schema: type[T]):
     prompt/schema.
     """
     if schema not in _chains:
+        # JSON-schema mode: in the default tool-calling mode gpt-oss-120b often
+        # answers in prose instead of calling the tool (400 tool_use_failed).
         primary = ChatGroq(
             model=GROQ_MODEL, api_key=settings.groq_api_key, temperature=0, max_retries=2
-        ).with_structured_output(schema)
+        ).with_structured_output(schema, method="json_schema")
         secondary = ChatGoogleGenerativeAI(
             model=GEMINI_MODEL, api_key=settings.gemini_api_key, temperature=0, max_retries=2
         ).with_structured_output(schema)

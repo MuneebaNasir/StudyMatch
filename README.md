@@ -128,8 +128,8 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db
 
 What the first runs found:
 
-- **Groq's primary model failed 9 of 10 eligibility calls**: 7 with `tool_use_failed` (it answered in prose instead of the structured tool call) and 2 rate limits, so production silently fell back to weaker tiers. Groq's JSON-schema output mode got 3/3 right in a follow-up check.
-- **Weak fallbacks show up in the verdicts**: overall 50–60% of eligibility verdicts were acceptable, and the judge caught reasoning errors such as treating a German 2.8 as meeting a 2.5 limit (lower is better).
+- **Groq's primary model failed 9 of 10 eligibility calls**: 7 with `tool_use_failed` (it answered in prose instead of the structured tool call) and 2 rate limits, so production silently fell back to weaker tiers, and only 50–60% of eligibility verdicts were acceptable. The judge caught reasoning errors such as treating a German 2.8 as meeting a 2.5 limit (lower is better).
+- **Fixed, and measured:** switching Groq to JSON-schema structured output took it to 10/10 eligibility calls answered with 0 failures, and acceptable verdicts rose to 70%, with no factual errors in the 4 cases the judge scored (it was rate-limited on the rest).
 - **City spellings:** the parser returns "Munich"/"Cologne" while the catalog stores "München"/"Köln", so those city filters match nothing. Query parsing scored 7–8/10 fully correct; the other miss is the parser intermittently turning a broad topic ("AI") into an exact subject filter, which returns zero results.
 - **Speed:** query parsing took 1.7–2.4s on Groq and 2.3–2.8s on Mistral, against 7.8–9.0s on Gemini.
 - It also caught its own labelling mistakes: two programmes required a German A1 certificate or the GRE that the first test profiles left out.
