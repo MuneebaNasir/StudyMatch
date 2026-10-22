@@ -11,9 +11,14 @@ treats like any provider failure and moves on to the next tier:
 - `only_provider` blocks every other provider, so the production chain falls
   through to the single provider under test.
 
+Only calls made on the thread that entered the spy are recorded or blocked:
+MLflow scores cases (including the Groq judge) on other threads while the
+next case's prediction holds the spy, and those calls must pass through.
+
 Counts are per model invocation. HTTP retries inside each provider SDK
 (`max_retries=2` in the app) happen below `_generate` and are not counted.
 """
+import threading
 import time
 from dataclasses import dataclass
 
@@ -47,6 +52,7 @@ class LlmSpy:
         self._gemini_cap = gemini_cap
         self.only_provider = only_provider
         self._saved: dict[str, object] = {}
+        self._thread_id: int | None = None
         self.case_records: list[CallRecord] = []
         self.gemini_calls = 0
         self.gemini_guard_blocks = 0
@@ -58,21 +64,24 @@ class LlmSpy:
         answered = [r.provider for r in self.case_records if r.ok]
         return answered[-1] if answered else None
 
-    def _blocked(self, provider: str) -> bool:
+    def _block_reason(self, provider: str) -> str | None:
         if self.only_provider is not None and provider != self.only_provider:
-            return True
+            return "not_selected"
         if provider == "gemini" and self._gemini_cap is not None and self.gemini_calls >= self._gemini_cap:
             self.gemini_guard_blocks += 1
-            return True
-        return False
+            return "quota_guard"
+        return None
 
     def _wrap(self, provider: str, original):
         spy = self
 
         def _generate(model_self, *args, **kwargs):
-            if spy._blocked(provider):
-                spy.case_records.append(CallRecord(provider, False, 0.0, None, None, blocked=True, error="blocked"))
-                raise ProviderBlockedError(provider)
+            if threading.get_ident() != spy._thread_id:
+                return original(model_self, *args, **kwargs)
+            reason = spy._block_reason(provider)
+            if reason is not None:
+                spy.case_records.append(CallRecord(provider, False, 0.0, None, None, blocked=True, error=reason))
+                raise ProviderBlockedError(f"{provider}: {reason}")
             if provider == "gemini":
                 spy.gemini_calls += 1
             start = time.perf_counter()
@@ -93,6 +102,7 @@ class LlmSpy:
         return _generate
 
     def __enter__(self):
+        self._thread_id = threading.get_ident()
         for provider, cls in self._provider_classes.items():
             self._saved[provider] = cls.__dict__.get("_generate")
             cls._generate = self._wrap(provider, cls._generate)

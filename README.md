@@ -117,7 +117,7 @@ Free-tier providers retire models, change behaviour and run out of quota without
 - **Eligibility verdicts**: 10 synthetic student profiles against real programmes' requirements, including traps (10-point CGPA, German grades where lower is better, unrelated degrees). A Groq LLM judge checks the reasoning for factual errors.
 - **Transcript reading**: generated transcripts with known courses and grades, scored on course recall and grade accuracy.
 
-Every run records which provider actually answered, latency, tokens and provider errors, and traces each LangChain call. `--per-provider` forces Groq, Mistral and Gemini in turn on the same cases. A built-in guard caps Gemini at 5 calls per run, since the eval uses the same free-tier keys as the live site.
+Every run records which provider actually answered, latency, tokens and provider errors, and traces each LangChain call. `--per-provider` forces Groq, Mistral and Gemini in turn on the same cases. A built-in guard caps Gemini at 5 model calls per run (`--gemini-cap`), since the eval uses the same free-tier keys as the live site. It counts model calls, not the provider SDK's own HTTP retries, so a flaky day can still cost a few extra requests. Cases cut short by the cap are reported as skipped, not failed.
 
 ```bash
 uv sync --extra eval
@@ -128,10 +128,10 @@ mlflow ui --backend-store-uri sqlite:///mlflow.db
 
 What the first runs found:
 
-- **Groq's primary model failed 9 of 10 eligibility calls** with `tool_use_failed`: it answered in prose instead of the structured tool call, so production silently fell back to weaker tiers. Groq's JSON-schema output mode got 3/3 right in a follow-up check.
-- **The fallback model's reasoning had factual errors in every judged case** (e.g. treating a German 2.8 as meeting a 2.5 limit), against none for Groq.
-- **City spellings:** the parser returns "Munich"/"Cologne" while the catalog stores "München"/"Köln", so those city filters match nothing (8/10 queries fully correct, both misses are this).
-- **Speed:** query parsing took 1.7s on Groq, 2.8s on Mistral and 9.0s on Gemini.
+- **Groq's primary model failed 9 of 10 eligibility calls**: 7 with `tool_use_failed` (it answered in prose instead of the structured tool call) and 2 rate limits, so production silently fell back to weaker tiers. Groq's JSON-schema output mode got 3/3 right in a follow-up check.
+- **Weak fallbacks show up in the verdicts**: overall 50–60% of eligibility verdicts were acceptable, and the judge caught reasoning errors such as treating a German 2.8 as meeting a 2.5 limit (lower is better).
+- **City spellings:** the parser returns "Munich"/"Cologne" while the catalog stores "München"/"Köln", so those city filters match nothing. Query parsing scored 7–8/10 fully correct; the other miss is the parser intermittently turning a broad topic ("AI") into an exact subject filter, which returns zero results.
+- **Speed:** query parsing took 1.7–2.4s on Groq and 2.3–2.8s on Mistral, against 7.8–9.0s on Gemini.
 - It also caught its own labelling mistakes: two programmes required a German A1 certificate or the GRE that the first test profiles left out.
 
 ## File structure

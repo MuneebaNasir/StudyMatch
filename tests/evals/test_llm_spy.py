@@ -94,3 +94,30 @@ def test_failed_provider_call_is_recorded_and_reraised():
     ]
     with pytest.raises(RuntimeError), LlmSpy(PROVIDERS):
         FakeGroq(fail=True).invoke("hi")
+
+
+def test_calls_from_other_threads_pass_through_unrecorded_and_unblocked():
+    # MLflow runs scorers (e.g. the Groq judge) on another thread while the
+    # next case's predict holds the spy; those calls must not be attributed
+    # to the case or blocked by only_provider.
+    import threading
+
+    result = {}
+    with LlmSpy(PROVIDERS, only_provider="mistral") as spy:
+        spy.start_case()
+        thread = threading.Thread(target=lambda: result.update(reply=FakeGroq(reply="judge").invoke("x").content))
+        thread.start()
+        thread.join()
+
+    assert result["reply"] == "judge"
+    assert spy.case_records == []
+
+
+def test_guard_and_provider_selection_blocks_are_distinguishable():
+    chain = FakeGroq().with_fallbacks([FakeGemini()])
+    with LlmSpy(PROVIDERS, gemini_cap=0, only_provider="gemini") as spy:
+        spy.start_case()
+        with pytest.raises(Exception):
+            chain.invoke("hi")
+
+    assert [(r.provider, r.error) for r in spy.case_records] == [("groq", "not_selected"), ("gemini", "quota_guard")]

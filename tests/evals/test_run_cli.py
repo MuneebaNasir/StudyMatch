@@ -33,3 +33,37 @@ def test_configure_mlflow_env_runs_cases_serially_without_extra_validation_call(
     # MLflow otherwise calls predict_fn once more on the first case before
     # evaluating, which costs an extra LLM call and skews the stats.
     assert os.environ["MLFLOW_GENAI_EVAL_SKIP_TRACE_VALIDATION"] == "true"
+
+
+def test_missing_api_keys_lists_unset_providers():
+    from types import SimpleNamespace
+
+    keys = SimpleNamespace(groq_api_key="g", mistral_api_key="", gemini_api_key=None)
+
+    assert run.missing_api_keys(keys) == ["MISTRAL_API_KEY", "GEMINI_API_KEY"]
+
+
+def test_spied_marks_quota_guard_blocked_case_as_skipped_not_failed():
+    from evals.llm_spy import CallRecord
+
+    class Spy:
+        case_records = []
+
+        def start_case(self):
+            self.case_records = [CallRecord("gemini", False, 0.0, None, None, True, error="quota_guard")]
+
+        def answered_by(self):
+            return None
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    stats = run._RunStats()
+    output, info = run._spied(Spy(), stats, lambda: None, lambda out: False)
+
+    assert output is None
+    assert info["skipped_quota_guard"] is True
+    assert (stats.failures, stats.skipped) == (0, 1)

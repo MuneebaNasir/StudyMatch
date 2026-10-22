@@ -76,22 +76,25 @@ class _RunStats:
         self.latencies: list[float] = []
         self.tokens = 0
         self.failures = 0
+        self.skipped = 0
         self.answered_by: Counter = Counter()
         self.errors: Counter = Counter()
 
-    def record_call(self, spy: LlmSpy, latency_s: float, failed: bool) -> dict:
+    def record_call(self, spy: LlmSpy, latency_s: float, failed: bool, skipped: bool = False) -> dict:
         records = spy.case_records
         tokens = sum((r.input_tokens or 0) + (r.output_tokens or 0) for r in records)
         self.latencies.append(latency_s)
         self.tokens += tokens
-        self.failures += int(failed)
+        self.failures += int(failed and not skipped)
+        self.skipped += int(skipped)
         self.answered_by[spy.answered_by() or "none"] += 1
         errors = [f"{r.provider}:{r.error}" for r in records if r.error and not r.blocked]
         self.errors.update(e.replace(":", "_") for e in errors)
         return {
             "answered_by": spy.answered_by(), "latency_s": round(latency_s, 3), "tokens": tokens,
             "provider_errors": errors,
-            "gemini_blocked": any(r.provider == "gemini" and r.blocked for r in records),
+            "gemini_blocked": any(r.error == "quota_guard" for r in records),
+            "skipped_quota_guard": skipped,
         }
 
     def record_scores(self, scores: dict[str, float]) -> None:
@@ -101,7 +104,7 @@ class _RunStats:
     def metrics(self) -> dict[str, float]:
         out = {f"mean_{name}": statistics.mean(values) for name, values in self.scores.items()}
         out.update({
-            "failures": self.failures, "total_tokens": self.tokens,
+            "failures": self.failures, "skipped_quota_guard": self.skipped, "total_tokens": self.tokens,
             "latency_mean_s": statistics.mean(self.latencies) if self.latencies else 0.0,
             "latency_p50_s": statistics.median(self.latencies) if self.latencies else 0.0,
         })
@@ -118,8 +121,21 @@ def _spied(spy: LlmSpy, stats: _RunStats, call, is_failure) -> tuple:
             output = call()
         except Exception:
             output = None
-    info = stats.record_call(spy, time.perf_counter() - start, failed=output is None or is_failure(output))
+    # No provider answered and the Gemini guard blocked a call: the case was
+    # cut short by the quota guard, so it's skipped rather than scored as a
+    # model failure.
+    skipped = spy.answered_by() is None and any(r.error == "quota_guard" for r in spy.case_records)
+    failed = output is None or is_failure(output)
+    info = stats.record_call(spy, time.perf_counter() - start, failed=failed, skipped=skipped and failed)
     return output, info
+
+
+def _skipped_feedback(outputs):
+    from mlflow.entities import Feedback
+
+    if outputs.get("skipped_quota_guard"):
+        return Feedback(name="skipped", error="skipped: Gemini quota guard reached")
+    return None
 
 
 def _query_suite(cases, spy, stats, snapshots, judge):
@@ -137,6 +153,8 @@ def _query_suite(cases, spy, stats, snapshots, judge):
 
     @scorer(name="query_fields")
     def query_fields(outputs, expectations):
+        if skipped := _skipped_feedback(outputs):
+            return skipped
         parsed = ParsedQuery(**outputs["parsed"]) if outputs["parsed"] else None
         scores = score_query(by_id[expectations["case_id"]], parsed)
         stats.record_scores(scores)
@@ -175,12 +193,16 @@ def _eligibility_suite(cases, spy, stats, snapshots, judge):
 
     @scorer(name="eligibility_verdict")
     def eligibility_verdict(outputs, expectations):
+        if skipped := _skipped_feedback(outputs):
+            return skipped
         scores = score_eligibility(by_id[expectations["case_id"]], _verdicts(outputs))
         stats.record_scores(scores)
         return [Feedback(name=name, value=value) for name, value in scores.items()]
 
     @scorer(name="judge")
     def judge_scorer(outputs, expectations):
+        if skipped := _skipped_feedback(outputs):
+            return skipped
         case = by_id[expectations["case_id"]]
         verdict = next((v for v in _verdicts(outputs) or [] if v.program_id == case.program_id), None)
         result = judge_reasoning(case.profile, snapshots[case.program_id], verdict) if verdict else None
@@ -217,6 +239,8 @@ def _transcript_suite(cases, spy, stats, snapshots, judge):
 
     @scorer(name="transcript")
     def transcript_scorer(outputs, expectations):
+        if skipped := _skipped_feedback(outputs):
+            return skipped
         extraction = TranscriptExtraction(**(outputs["extraction"] or {"extraction_confidence": "low"}))
         scores = score_transcript(by_id[expectations["case_id"]], extraction)
         stats.record_scores(scores)
@@ -281,13 +305,23 @@ def _run_private_transcript(mlflow, spy, transcript_path: Path, truth_path: Path
 
 
 def _print_summary(summaries: list[dict], tracking_uri: str) -> None:
-    print(f"\n{'suite':<12} {'provider':<15} {'cases':>5} {'headline':>22} {'failures':>8} {'gemini':>6}")
+    print(f"\n{'suite':<12} {'provider':<15} {'cases':>5} {'headline':>22} {'failures':>8} {'skipped':>7} {'gemini':>6} {'blocked':>7}")
     for s in summaries:
         name = HEADLINE[s["suite"]]
         value = s.get(f"mean_{name}")
         headline = f"{name} {value:.0%}" if value is not None else "n/a"
-        print(f"{s['suite']:<12} {s['provider']:<15} {s['cases']:>5} {headline:>22} {s['failures']:>8} {s.get('gemini_calls', 0):>6}")
+        print(f"{s['suite']:<12} {s['provider']:<15} {s['cases']:>5} {headline:>22} {s['failures']:>8} "
+              f"{s.get('skipped_quota_guard', 0):>7} {s.get('gemini_calls', 0):>6} {s.get('gemini_guard_blocks', 0):>7}")
+    if any(s.get("gemini_guard_blocks") for s in summaries):
+        print("'blocked' = Gemini calls stopped by the quota guard (the chain fell through to the next provider); "
+              "'skipped' = cases left unscored because of it. Raise the cap with --gemini-cap.")
     print(f"\nExplore runs and traces: mlflow ui --backend-store-uri {tracking_uri}")
+
+
+def missing_api_keys(keys) -> list[str]:
+    return [
+        name.upper() for name in ("groq_api_key", "mistral_api_key", "gemini_api_key") if not getattr(keys, name, None)
+    ]
 
 
 def configure_mlflow_env() -> None:
@@ -309,6 +343,12 @@ def main(argv: list[str] | None = None) -> int:
         import mlflow.genai  # noqa: F401
     except ImportError:
         print(MLFLOW_MISSING)
+        return 2
+
+    from daad_search.config import settings
+
+    if missing := missing_api_keys(settings):
+        print(f"Missing API key(s): {', '.join(missing)}. Set them in .env -- the eval calls the same providers as the app.")
         return 2
 
     configure_mlflow_env()
