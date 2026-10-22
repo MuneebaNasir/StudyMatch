@@ -36,7 +36,8 @@ Most program search tools make you speak their language: pick from dropdowns, gu
 - **Data:** PostgreSQL (Neon), Qdrant (vector search)
 - **Frontend:** React, TypeScript, Vite, TanStack Query, Radix UI, Tailwind CSS
 - **Deployment:** Google Cloud Run (backend, scale-to-zero), Vercel (frontend), Docker, all on free tiers
-- **Testing:** pytest + Vitest/Testing Library/MSW, TDD throughout, 90+ tests across both stacks
+- **Evaluation:** MLflow (experiment tracking, LangChain tracing, `mlflow.genai.evaluate` with custom scorers and a Groq LLM judge)
+- **Testing:** pytest + Vitest/Testing Library/MSW, TDD throughout, 200+ tests across both stacks
 - 
 ## How it works (and why it doesn't Hallucinate)
 
@@ -108,6 +109,31 @@ flowchart LR
 - **Structured production logging.** Every query logs which provider responded, the extracted search filters, and each eligibility verdict, so real behavior is inspectable after the fact.
 - **No personal data at rest.** Uploaded transcripts are processed in memory and never written to disk or the database; the extracted courses and grades go back to the browser, which holds them in memory and resends them with each query. Logs deliberately omit the raw query text and the student profile.
 
+## Evaluation with MLflow
+
+Free-tier providers retire models, change behaviour and run out of quota without warning, so "it worked yesterday" isn't evidence. `evals/` measures the app's three LLM steps against small labelled datasets and logs every run to MLflow:
+
+- **Query understanding**: 10 queries, scored field by field (degree type, city, language, tuition, the student's own grade and nationality).
+- **Eligibility verdicts**: 10 synthetic student profiles against real programmes' requirements, including traps (10-point CGPA, German grades where lower is better, unrelated degrees). A Groq LLM judge checks the reasoning for factual errors.
+- **Transcript reading**: generated transcripts with known courses and grades, scored on course recall and grade accuracy.
+
+Every run records which provider actually answered, latency, tokens and provider errors, and traces each LangChain call. `--per-provider` forces Groq, Mistral and Gemini in turn on the same cases. A built-in guard caps Gemini at 5 calls per run, since the eval uses the same free-tier keys as the live site.
+
+```bash
+uv sync --extra eval
+uv run python -m evals.run all                 # or: query | eligibility | transcript
+uv run python -m evals.run all --per-provider  # compare providers
+mlflow ui --backend-store-uri sqlite:///mlflow.db
+```
+
+What the first runs found:
+
+- **Groq's primary model failed 9 of 10 eligibility calls** with `tool_use_failed`: it answered in prose instead of the structured tool call, so production silently fell back to weaker tiers. Groq's JSON-schema output mode got 3/3 right in a follow-up check.
+- **The fallback model's reasoning had factual errors in every judged case** (e.g. treating a German 2.8 as meeting a 2.5 limit), against none for Groq.
+- **City spellings:** the parser returns "Munich"/"Cologne" while the catalog stores "München"/"Köln", so those city filters match nothing (8/10 queries fully correct, both misses are this).
+- **Speed:** query parsing took 1.7s on Groq, 2.8s on Mistral and 9.0s on Gemini.
+- It also caught its own labelling mistakes: two programmes required a German A1 certificate or the GRE that the first test profiles left out.
+
 ## File structure
 
 ```
@@ -123,6 +149,7 @@ flowchart LR
 │   ├── hooks/                # TanStack Query hooks (search, pagination, eligibility evaluation)
 │   ├── api/                  # Typed API client
 │   └── lib/                  # Verdict merging, display helpers
+├── evals/                    # MLflow evaluation: labelled datasets, scorers, provider spy, runner
 ├── tests/                    # pytest suite (unit + integration, real Postgres/Qdrant for integration)
 ├── Dockerfile                # Backend container (CPU-only torch, multi-stage build)
 └── docker-compose.yml        # Local Postgres + Qdrant for development
